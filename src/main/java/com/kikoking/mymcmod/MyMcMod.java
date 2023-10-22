@@ -4,6 +4,7 @@ import com.kikoking.mymcmod.item.ModCreateModeTabs;
 import com.kikoking.mymcmod.item.ModItems;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.api.distmarker.Dist;
@@ -53,6 +54,7 @@ public class MyMcMod
         if(event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
             event.accept(ModItems.SAPPHIRE);
             event.accept(ModItems.RAW_SAPPHIRE);
+            event.accept(ModItems.ENDER_DRAGON_SPAWN_EGG);
         }
     }
 
