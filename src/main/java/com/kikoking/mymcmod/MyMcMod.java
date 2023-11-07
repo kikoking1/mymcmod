@@ -55,6 +55,10 @@ public class MyMcMod
             event.accept(ModItems.SAPPHIRE);
             event.accept(ModItems.RAW_SAPPHIRE);
             event.accept(ModItems.ENDER_DRAGON_SPAWN_EGG);
+            event.accept(ModItems.WITHER_SPAWN_EGG);
+            event.accept(ModItems.GIANT_SPAWN_EGG);
+            event.accept(ModItems.ILLUSIONER_SPAWN_EGG);
+            event.accept(ModItems.TELEPORT_STAFF);
         }
     }
 

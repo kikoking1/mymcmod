@@ -3,5 +3,9 @@
   "item.mymcmod.raw_sapphire": "Raw Sapphire",
 
   "creativetab.mymc_tab": "Sapphire Tab",
-  "item.mymcmod.ender_dragon_spawn_egg": "Spawn Ender Dragon"
+  "item.mymcmod.ender_dragon_spawn_egg": "Spawn Ender Dragon",
+  "item.mymcmod.wither_spawn_egg": "Spawn Wither",
+  "item.mymcmod.giant_spawn_egg": "Spawn Giant",
+  "item.mymcmod.illusioner_spawn_egg": "Spawn Illusioner",
+  "item.mymcmod.teleport_staff": "Teleport Staff"
 }
