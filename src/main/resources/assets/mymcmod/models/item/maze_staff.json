@@ -1,6 +1,6 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0":"mymcmod:item/teleport_staff"
+    "layer0":"mymcmod:item/maze_staff"
   }
 }

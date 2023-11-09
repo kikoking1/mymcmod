@@ -58,7 +58,7 @@ public class MyMcMod
             event.accept(ModItems.WITHER_SPAWN_EGG);
             event.accept(ModItems.GIANT_SPAWN_EGG);
             event.accept(ModItems.ILLUSIONER_SPAWN_EGG);
-            event.accept(ModItems.TELEPORT_STAFF);
+            event.accept(ModItems.MAZE_STAFF);
         }
     }
 
