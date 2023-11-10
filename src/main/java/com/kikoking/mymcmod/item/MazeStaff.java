@@ -1,15 +1,25 @@
 package com.kikoking.mymcmod.item;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
+import net.minecraft.util.Tuple;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LadderBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -24,6 +34,18 @@ public class MazeStaff extends Item {
     private static final int MAZE_SIZE = 50;
     private static final int MAZE_HEIGHT = 10;
     private static final Random random = new Random();
+    private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
+            new Tuple<>(Blocks.BEDROCK, EntityType.ZOMBIE),
+            new Tuple<>(Blocks.BEDROCK, EntityType.SPIDER),
+            new Tuple<>(Blocks.BEDROCK, EntityType.SKELETON),
+            new Tuple<>(Blocks.BEDROCK, EntityType.WITHER_SKELETON),
+            new Tuple<>(Blocks.BEDROCK, EntityType.ENDERMAN),
+            new Tuple<>(Blocks.BEDROCK, EntityType.PILLAGER),
+            new Tuple<>(Blocks.BEDROCK, EntityType.VINDICATOR),
+            new Tuple<>(Blocks.BEDROCK, EntityType.WARDEN),
+            new Tuple<>(Blocks.BEDROCK, EntityType.ZOGLIN),
+            new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.WITCH),
+    };
 
     public MazeStaff(Properties properties) {
         super(properties);
@@ -35,15 +57,18 @@ public class MazeStaff extends Item {
         BlockPos lookPos = ray.getBlockPos().relative(ray.getDirection());
 
         for(int x = 0; x < MAZE_HEIGHT; x++){
-            setMazeFloorLevel(world, x, lookPos);
+            setMazeFloorLevel(world, x, lookPos, player.getDirection());
         }
 
         return super.use(world, player, hand);
     }
 
-    private static void setMazeFloorLevel(Level world, int floorLevel, BlockPos lookPos){
+    private static void setMazeFloorLevel(Level world, int floorLevel, BlockPos lookPos, Direction playerDirection){
 
-        floorLevel *= 3;
+        int floorLevelOffset = floorLevel*3;
+        int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
+        Block blockType = blockTypeByTowerLevel[blockTypeIdx].getA();
+        EntityType spawnerEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
         int[][] mazeArr = generateMaze(MAZE_SIZE);
 
         // close the walls
@@ -72,21 +97,51 @@ public class MazeStaff extends Item {
 
         for(int z = 0; z < mazeArr.length; z++){
             for(int x = 0; x < mazeArr[z].length; x++){
-                if(mazeArr[z][x] == 1){
-                    BlockPos block = new BlockPos(lookPos.getX()+x, (lookPos.getY()+1)+floorLevel, lookPos.getZ()+z);
-                    world.setBlockAndUpdate(block, Blocks.BEDROCK.defaultBlockState());
-                    BlockPos blockAbove = new BlockPos(lookPos.getX()+x, (lookPos.getY()+2)+floorLevel, lookPos.getZ()+z);
-                    world.setBlockAndUpdate(blockAbove, Blocks.BEDROCK.defaultBlockState());
-                } else {
-                    BlockPos block = new BlockPos(lookPos.getX()+x, (lookPos.getY()+1)+floorLevel, lookPos.getZ()+z);
-                    world.setBlockAndUpdate(block, Blocks.VOID_AIR.defaultBlockState());
-                    BlockPos blockAbove = new BlockPos(lookPos.getX()+x, (lookPos.getY()+2)+floorLevel, lookPos.getZ()+z);
-                    world.setBlockAndUpdate(blockAbove, Blocks.VOID_AIR.defaultBlockState());
+                int xPos = lookPos.getX()+x;
+                int yPos = lookPos.getY()+floorLevelOffset;
+                int zPos = lookPos.getZ()+z;
+
+                if(floorLevel == 0){
+                    BlockPos blockPos = new BlockPos(xPos, yPos, zPos);
+                    world.setBlockAndUpdate(blockPos, blockType.defaultBlockState());
                 }
-                BlockPos ceilingBlock = new BlockPos(lookPos.getX()+x, (lookPos.getY()+3)+floorLevel, lookPos.getZ()+z);
-                world.setBlockAndUpdate(ceilingBlock, Blocks.BEDROCK.defaultBlockState());
+
+                if(mazeArr[z][x] == 1){
+                    BlockPos blockPos = new BlockPos(xPos, yPos+1, zPos);
+                    world.setBlockAndUpdate(blockPos, blockType.defaultBlockState());
+                    BlockPos blockAbovePos = new BlockPos(xPos, yPos+2, zPos);
+                    world.setBlockAndUpdate(blockAbovePos, blockType.defaultBlockState());
+                } else {
+                    BlockPos blockPos = new BlockPos(xPos, yPos+1, zPos);
+                    world.setBlockAndUpdate(blockPos, Blocks.VOID_AIR.defaultBlockState());
+                    BlockPos blockAbovePos = new BlockPos(xPos, yPos+2, zPos);
+                    world.setBlockAndUpdate(blockAbovePos, Blocks.VOID_AIR.defaultBlockState());
+                }
+
+                BlockPos ceilingBlockPos = new BlockPos(xPos, yPos+3, zPos);
+                if(mazeArr[z][x] == 0 && (z+x) % (13+floorLevel) == 0){
+                    placeSpawnerBlock(world, ceilingBlockPos, spawnerEntityType);
+                } else {
+                    world.setBlockAndUpdate(ceilingBlockPos, blockType.defaultBlockState());
+                }
             }
         }
+    }
+
+    // Place a spawner block with a zombie entity in it at the specified position
+    public static void placeSpawnerBlock(Level world, BlockPos pos, EntityType entityType) {
+        // Set the block state to mob spawner
+        world.setBlockAndUpdate(pos, Blocks.SPAWNER.defaultBlockState());
+
+        // Get the tile entity for the mob spawner
+        BlockEntity blockEntity = world.getBlockEntity(pos);
+
+        if (blockEntity instanceof SpawnerBlockEntity spawnerTileEntity) {
+            // Set the spawner entity type to a zombie
+            spawnerTileEntity.getSpawner().setEntityId(entityType, world, RandomSource.create(), pos);
+            spawnerTileEntity.setChanged();
+        }
+
     }
 
     private static int[][] generateMaze(int size) {
@@ -149,6 +204,5 @@ public class MazeStaff extends Item {
         Vec3 vec31 = vec3.add((double)f6 * range, (double)f5 * range, (double)f7 * range);
         return world.clip(new ClipContext(vec3, vec31, ClipContext.Block.OUTLINE, fluidMode, player));
     }
-
 
 }
