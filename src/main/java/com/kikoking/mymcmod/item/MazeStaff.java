@@ -16,10 +16,8 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.LadderBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -33,18 +31,19 @@ public class MazeStaff extends Item {
     private static final int PATH = 0;
     private static final int MAZE_SIZE = 50;
     private static final int MAZE_HEIGHT = 10;
+    private static final int MAX_MONSTER_PER_FLOOR = 4;
     private static final Random random = new Random();
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(Blocks.BEDROCK, EntityType.ZOMBIE),
             new Tuple<>(Blocks.BEDROCK, EntityType.SPIDER),
             new Tuple<>(Blocks.BEDROCK, EntityType.SKELETON),
-            new Tuple<>(Blocks.BEDROCK, EntityType.WITHER_SKELETON),
-            new Tuple<>(Blocks.BEDROCK, EntityType.ENDERMAN),
+            new Tuple<>(Blocks.BEDROCK, EntityType.ZOMBIE_VILLAGER),
             new Tuple<>(Blocks.BEDROCK, EntityType.PILLAGER),
+            new Tuple<>(Blocks.BEDROCK, EntityType.HUSK),
             new Tuple<>(Blocks.BEDROCK, EntityType.VINDICATOR),
-            new Tuple<>(Blocks.BEDROCK, EntityType.WARDEN),
-            new Tuple<>(Blocks.BEDROCK, EntityType.ZOGLIN),
-            new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.WITCH),
+            new Tuple<>(Blocks.BEDROCK, EntityType.WITCH),
+            new Tuple<>(Blocks.BEDROCK, EntityType.ILLUSIONER),
+            new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.WARDEN),
     };
 
     public MazeStaff(Properties properties) {
@@ -63,12 +62,28 @@ public class MazeStaff extends Item {
         return super.use(world, player, hand);
     }
 
+    private static BlockHitResult rayTrace(Level world, Player player, ClipContext.Fluid fluidMode) {
+        double range = 200;
+
+        float f = player.getXRot();
+        float f1 = player.getYRot();
+        Vec3 vec3 = player.getEyePosition();
+        float f2 = Mth.cos(-f1 * ((float)Math.PI / 180F) - (float)Math.PI);
+        float f3 = Mth.sin(-f1 * ((float)Math.PI / 180F) - (float)Math.PI);
+        float f4 = -Mth.cos(-f * ((float)Math.PI / 180F));
+        float f5 = Mth.sin(-f * ((float)Math.PI / 180F));
+        float f6 = f3 * f4;
+        float f7 = f2 * f4;
+        Vec3 vec31 = vec3.add((double)f6 * range, (double)f5 * range, (double)f7 * range);
+        return world.clip(new ClipContext(vec3, vec31, ClipContext.Block.OUTLINE, fluidMode, player));
+    }
+
     private static void setMazeFloorLevel(Level world, int floorLevel, BlockPos lookPos, Direction playerDirection){
 
         int floorLevelOffset = floorLevel*3;
         int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
         Block blockType = blockTypeByTowerLevel[blockTypeIdx].getA();
-        EntityType spawnerEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
+        EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
         int[][] mazeArr = generateMaze(MAZE_SIZE);
 
         // close the walls
@@ -95,6 +110,7 @@ public class MazeStaff extends Item {
             }
         }
 
+        int monsterPlaceCounter = 1;
         for(int z = 0; z < mazeArr.length; z++){
             for(int x = 0; x < mazeArr[z].length; x++){
                 int xPos = lookPos.getX()+x;
@@ -116,14 +132,17 @@ public class MazeStaff extends Item {
                     world.setBlockAndUpdate(blockPos, Blocks.VOID_AIR.defaultBlockState());
                     BlockPos blockAbovePos = new BlockPos(xPos, yPos+2, zPos);
                     world.setBlockAndUpdate(blockAbovePos, Blocks.VOID_AIR.defaultBlockState());
+                    if(mazeArr[z][x] == 0 && (z+x+random.nextInt(1, MAZE_SIZE-1)) % (random.nextInt(1, MAZE_SIZE-1)) == 0 && monsterPlaceCounter <= MAX_MONSTER_PER_FLOOR){
+                        Entity monster = monsterEntityType.create(world);
+                        if(monster != null){
+                            monster.setPos(blockPos.getX(), blockPos.getY(), blockPos.getZ());
+                            world.addFreshEntity(monster);
+                            monsterPlaceCounter++;
+                        }
+                    }
                 }
-
                 BlockPos ceilingBlockPos = new BlockPos(xPos, yPos+3, zPos);
-                if(mazeArr[z][x] == 0 && (z+x) % (13+floorLevel) == 0){
-                    placeSpawnerBlock(world, ceilingBlockPos, spawnerEntityType);
-                } else {
-                    world.setBlockAndUpdate(ceilingBlockPos, blockType.defaultBlockState());
-                }
+                world.setBlockAndUpdate(ceilingBlockPos, blockType.defaultBlockState());
             }
         }
     }
@@ -188,21 +207,4 @@ public class MazeStaff extends Item {
 
         return maze;
     }
-
-    protected static BlockHitResult rayTrace(Level world, Player player, ClipContext.Fluid fluidMode) {
-        double range = 200;
-
-        float f = player.getXRot();
-        float f1 = player.getYRot();
-        Vec3 vec3 = player.getEyePosition();
-        float f2 = Mth.cos(-f1 * ((float)Math.PI / 180F) - (float)Math.PI);
-        float f3 = Mth.sin(-f1 * ((float)Math.PI / 180F) - (float)Math.PI);
-        float f4 = -Mth.cos(-f * ((float)Math.PI / 180F));
-        float f5 = Mth.sin(-f * ((float)Math.PI / 180F));
-        float f6 = f3 * f4;
-        float f7 = f2 * f4;
-        Vec3 vec31 = vec3.add((double)f6 * range, (double)f5 * range, (double)f7 * range);
-        return world.clip(new ClipContext(vec3, vec31, ClipContext.Block.OUTLINE, fluidMode, player));
-    }
-
 }
