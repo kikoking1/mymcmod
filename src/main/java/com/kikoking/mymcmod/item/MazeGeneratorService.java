@@ -9,6 +9,7 @@ import java.util.Random;
 public class MazeGeneratorService {
 
     public MazeNode generateMazeLinkedList(int MAZE_SIZE, int xPos, int zPos) {
+        MAZE_SIZE = MAZE_SIZE / 2;
         MazeNode mazeRootNode = new MazeNode(xPos, zPos);
         MazeNode cellPrev = mazeRootNode;
         MazeNode rowStart = mazeRootNode;

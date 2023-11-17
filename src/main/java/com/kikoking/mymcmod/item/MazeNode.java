@@ -8,10 +8,10 @@ public class MazeNode {
         public MazeNode right =  null;
         public MazeNode down = null;
         public MazeNode left = null;
-        public Integer xCoordinate;
-        public Integer zCoordinate;
+        public int xCoordinate;
+        public int zCoordinate;
 
-    public MazeNode(Integer xCoordinate, Integer zCoordinate) {
+    public MazeNode(int xCoordinate, int zCoordinate) {
         this.xCoordinate = xCoordinate;
         this.zCoordinate = zCoordinate;
     }

@@ -30,19 +30,19 @@ public class MazeStaff extends Item {
 
     private static final int WALL = 1;
     private static final int PATH = 0;
-    private static final int MAZE_SIZE = 5;
-    private static final int MAZE_HEIGHT = 1;
+    private static final int MAZE_SIZE = 50; // must be even number
+    private static final int MAZE_HEIGHT = 10;
     private static final int MAX_MONSTER_PER_FLOOR = 4;
     private static final Random random = new Random();
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(Blocks.BEDROCK, EntityType.ZOMBIE),
-            new Tuple<>(Blocks.BEDROCK, EntityType.SPIDER),
+            new Tuple<>(Blocks.POLISHED_DEEPSLATE, EntityType.SPIDER),
             new Tuple<>(Blocks.BEDROCK, EntityType.SKELETON),
-            new Tuple<>(Blocks.BEDROCK, EntityType.ZOMBIE_VILLAGER),
+            new Tuple<>(Blocks.POLISHED_DEEPSLATE, EntityType.ZOMBIE_VILLAGER),
             new Tuple<>(Blocks.BEDROCK, EntityType.PILLAGER),
-            new Tuple<>(Blocks.BEDROCK, EntityType.HUSK),
+            new Tuple<>(Blocks.POLISHED_DEEPSLATE, EntityType.HUSK),
             new Tuple<>(Blocks.BEDROCK, EntityType.VINDICATOR),
-            new Tuple<>(Blocks.BEDROCK, EntityType.WITCH),
+            new Tuple<>(Blocks.POLISHED_DEEPSLATE, EntityType.WITCH),
             new Tuple<>(Blocks.BEDROCK, EntityType.ILLUSIONER),
     };
 
@@ -59,14 +59,14 @@ public class MazeStaff extends Item {
             int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
             Block blockType = blockTypeByTowerLevel[blockTypeIdx].getA();
 
-            fillFloors(world, floorLevel, lookPos, blockType);
-            // setMazeFloorLevel(world, floorLevel, lookPos, blockTypeIdx, blockType);
+            fillFloor(world, floorLevel, lookPos, blockType);
+            generateMaze(world, floorLevel, lookPos, blockTypeIdx);
         }
 
         return super.use(world, player, hand);
     }
 
-    public static void fillFloors(Level world, int floorLevel, BlockPos lookPos, Block blockType) {
+    public static void fillFloor(Level world, int floorLevel, BlockPos lookPos, Block blockType) {
         int floorLevelOffset = getFloorLevelOffset(floorLevel);
         for(int z = 0; z < MAZE_SIZE; z++){
             for(int x = 0; x < MAZE_SIZE; x++){
@@ -91,72 +91,112 @@ public class MazeStaff extends Item {
         }
     }
 
-    private static void setMazeFloorLevel(Level world, int floorLevel, BlockPos lookPos, int blockTypeIdx, Block blockType){
+    private static MazeNode carveMazePath(Level world, MazeNode mazeNode, Stack<MazeNode> backTrackStack, EntityType monsterEntityType, int yPos) {
+
+        List<MazeNode> visitableDirections = getVisitableDirections(mazeNode);
+
+        if(visitableDirections.isEmpty()){
+            if(backTrackStack.isEmpty()){
+                return null;
+            }
+            MazeNode backTrackDirection = backTrackStack.pop();
+            return carveMazePath(world, backTrackDirection, backTrackStack, monsterEntityType, yPos);
+        }
+
+        backTrackStack.push(mazeNode);
+
+        Collections.shuffle(visitableDirections);
+        MazeNode forwardDirection = visitableDirections.get(0);
+
+
+        Integer coordDiff = getPrevNextCoordinateDiff(mazeNode.xCoordinate, forwardDirection.xCoordinate);
+
+        if(coordDiff != null){
+            // Carve between nodes horizontally
+            BlockPos blockMid = new BlockPos(coordDiff, yPos + 1, mazeNode.zCoordinate);
+            world.setBlockAndUpdate(blockMid, Blocks.VOID_AIR.defaultBlockState());
+            BlockPos blockMidAbove = new BlockPos(coordDiff, yPos + 2, mazeNode.zCoordinate);
+            world.setBlockAndUpdate(blockMidAbove, Blocks.VOID_AIR.defaultBlockState());
+        } else {
+            // Carve between nodes vertically
+            coordDiff = getPrevNextCoordinateDiff(mazeNode.zCoordinate, forwardDirection.zCoordinate);
+
+            BlockPos blockMid = new BlockPos(mazeNode.xCoordinate, yPos + 1, coordDiff);
+            world.setBlockAndUpdate(blockMid, Blocks.VOID_AIR.defaultBlockState());
+            BlockPos blockMidAbove = new BlockPos(mazeNode.xCoordinate, yPos + 2, coordDiff);
+            world.setBlockAndUpdate(blockMidAbove, Blocks.VOID_AIR.defaultBlockState());
+        }
+
+        BlockPos blockCurr = new BlockPos(mazeNode.xCoordinate, yPos + 1, mazeNode.zCoordinate);
+        world.setBlockAndUpdate(blockCurr, Blocks.VOID_AIR.defaultBlockState());
+        BlockPos blockCurrAbove = new BlockPos(mazeNode.xCoordinate, yPos + 2, mazeNode.zCoordinate);
+        world.setBlockAndUpdate(blockCurrAbove, Blocks.VOID_AIR.defaultBlockState());
+
+        BlockPos blockNext = new BlockPos(forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
+        world.setBlockAndUpdate(blockNext, Blocks.VOID_AIR.defaultBlockState());
+        BlockPos blockNextAbove = new BlockPos(forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
+        world.setBlockAndUpdate(blockNextAbove, Blocks.VOID_AIR.defaultBlockState());
+
+        // TODO: place monster randomly
+//        if (mazeArr[z][x] == 0 && (z + x + random.nextInt(1, MAZE_SIZE - 1)) % (random.nextInt(1, MAZE_SIZE - 1)) == 0 && monsterPlaceCounter <= MAX_MONSTER_PER_FLOOR) {
+//            Entity monster = monsterEntityType.create(world);
+//            if (monster != null) {
+//                monster.setPos(blockPos.getX(), blockPos.getY(), blockPos.getZ());
+//                world.addFreshEntity(monster);
+//                monsterPlaceCounter++;
+//            }
+//        }
+
+        return carveMazePath(world, forwardDirection, backTrackStack, monsterEntityType, yPos);
+    }
+
+    private static Integer getPrevNextCoordinateDiff(int prevCoord, int nextCoord){
+
+        if(prevCoord == nextCoord){
+            return null;
+        }
+
+        return prevCoord < nextCoord ? prevCoord +1 : nextCoord +1;
+    }
+
+    private static List<MazeNode> getVisitableDirections(MazeNode mazeNode) {
+        List<MazeNode> directionList = new ArrayList<>();
+        if(mazeNode.up != null){
+            if(!mazeNode.up.visited){
+                directionList.add(mazeNode.up);
+            }
+        }
+        if(mazeNode.right != null){
+            if(!mazeNode.right.visited) {
+                directionList.add(mazeNode.right);
+            }
+        }
+        if(mazeNode.down != null){
+            if(!mazeNode.down.visited) {
+                directionList.add(mazeNode.down);
+            }
+        }
+        if(mazeNode.left != null){
+            if(!mazeNode.left.visited) {
+                directionList.add(mazeNode.left);
+            }
+        }
+        return directionList;
+    }
+
+    private static void generateMaze(Level world, int floorLevel, BlockPos lookPos, int blockTypeIdx){
 
         int floorLevelOffset = getFloorLevelOffset(floorLevel);
+        int yPos = lookPos.getY() + floorLevelOffset;
         EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
-//        int[][] mazeArr = generateMaze(MAZE_SIZE);
 
-        int[][] mazeArr = new int[][]{};
-        // close the walls
-        for (int z = 0; z < mazeArr.length; z++) {
-            mazeArr[z][0] = 1;
-            mazeArr[z][mazeArr.length - 1] = 1;
-            mazeArr[0][z] = 1;
-            mazeArr[mazeArr.length - 1][z] = 1;
-        }
-//
-//        // Create Start
-        for (int z = 0; z < mazeArr.length; z++) {
-            if (mazeArr[z][1] == 0) {
-                mazeArr[z][0] = 0;
-                break;
-            }
-        }
-//
-//        // Create Finish
-        for (int z = 0; z < mazeArr.length; z++) {
-            if (mazeArr[z][mazeArr.length - 2] == 0) {
-                mazeArr[z][mazeArr.length - 1] = 0;
-                break;
-            }
-        }
+        // TODO: Create Start and Finish
 
-        int monsterPlaceCounter = 1;
-        for (int z = 0; z < mazeArr.length; z++) {
-            for (int x = 0; x < mazeArr[z].length; x++) {
-                int xPos = lookPos.getX() + x;
-                int yPos = lookPos.getY() + floorLevelOffset;
-                int zPos = lookPos.getZ() + z;
+        MazeGeneratorService mazeGeneratorService = new MazeGeneratorService();
+        MazeNode rootMazeNode = mazeGeneratorService.generateMazeLinkedList(MAZE_SIZE, lookPos.getX(), lookPos.getZ());
+        Stack<MazeNode> backTrackStack = new Stack<>();
 
-                if (floorLevel == 0) {
-                    BlockPos blockPos = new BlockPos(xPos, yPos, zPos);
-                    world.setBlockAndUpdate(blockPos, blockType.defaultBlockState());
-                }
-
-                if (mazeArr[z][x] == 1) {
-                    BlockPos blockPos = new BlockPos(xPos, yPos + 1, zPos);
-                    world.setBlockAndUpdate(blockPos, blockType.defaultBlockState());
-                    BlockPos blockAbovePos = new BlockPos(xPos, yPos + 2, zPos);
-                    world.setBlockAndUpdate(blockAbovePos, blockType.defaultBlockState());
-                } else {
-                    BlockPos blockPos = new BlockPos(xPos, yPos + 1, zPos);
-                    world.setBlockAndUpdate(blockPos, Blocks.VOID_AIR.defaultBlockState());
-                    BlockPos blockAbovePos = new BlockPos(xPos, yPos + 2, zPos);
-                    world.setBlockAndUpdate(blockAbovePos, Blocks.VOID_AIR.defaultBlockState());
-                    if (mazeArr[z][x] == 0 && (z + x + random.nextInt(1, MAZE_SIZE - 1)) % (random.nextInt(1, MAZE_SIZE - 1)) == 0 && monsterPlaceCounter <= MAX_MONSTER_PER_FLOOR) {
-                        Entity monster = monsterEntityType.create(world);
-                        if (monster != null) {
-                            monster.setPos(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-                            world.addFreshEntity(monster);
-                            monsterPlaceCounter++;
-                        }
-                    }
-                }
-                BlockPos ceilingBlockPos = new BlockPos(xPos, yPos + 3, zPos);
-                world.setBlockAndUpdate(ceilingBlockPos, blockType.defaultBlockState());
-            }
-        }
+        carveMazePath(world, rootMazeNode, backTrackStack, monsterEntityType, yPos);
     }
 
     private static int getFloorLevelOffset(int floorLevel){
