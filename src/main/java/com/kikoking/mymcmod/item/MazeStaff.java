@@ -31,7 +31,7 @@ public class MazeStaff extends Item {
     private static final int WALL = 1;
     private static final int PATH = 0;
     private static final int MAZE_SIZE = 50; // must be even number
-    private static final int MAZE_HEIGHT = 10;
+    private static final int MAZE_HEIGHT = 1;
     private static final int MAX_MONSTER_PER_FLOOR = 4;
     private static final Random random = new Random();
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
@@ -91,63 +91,67 @@ public class MazeStaff extends Item {
         }
     }
 
-    private static MazeNode carveMazePath(Level world, MazeNode mazeNode, Stack<MazeNode> backTrackStack, EntityType monsterEntityType, int yPos) {
+    private static void carveMazePath(Level world, MazeNode mazeNode, Stack<MazeNode> backTrackStack, EntityType monsterEntityType, int yPos) {
 
-        List<MazeNode> visitableDirections = getVisitableDirections(mazeNode);
+        while(true) {
+            List<MazeNode> visitableDirections = getVisitableDirections(mazeNode);
 
-        if(visitableDirections.isEmpty()){
-            if(backTrackStack.isEmpty()){
-                return null;
+            if (visitableDirections.isEmpty()) {
+                if (backTrackStack.isEmpty()) {
+                    break;
+                }
+                MazeNode backTrackDirection = backTrackStack.pop();
+                mazeNode = backTrackDirection;
+                continue;
             }
-            MazeNode backTrackDirection = backTrackStack.pop();
-            return carveMazePath(world, backTrackDirection, backTrackStack, monsterEntityType, yPos);
+
+            backTrackStack.push(mazeNode);
+
+            Collections.shuffle(visitableDirections);
+            MazeNode forwardDirection = visitableDirections.get(0);
+
+
+            Integer coordDiff = getPrevNextCoordinateDiff(mazeNode.xCoordinate, forwardDirection.xCoordinate);
+
+            if (coordDiff != null) {
+                // Carve between nodes horizontally
+                BlockPos blockMid = new BlockPos(coordDiff, yPos + 1, mazeNode.zCoordinate);
+                world.setBlockAndUpdate(blockMid, Blocks.VOID_AIR.defaultBlockState());
+                BlockPos blockMidAbove = new BlockPos(coordDiff, yPos + 2, mazeNode.zCoordinate);
+                world.setBlockAndUpdate(blockMidAbove, Blocks.VOID_AIR.defaultBlockState());
+            } else {
+                // Carve between nodes vertically
+                coordDiff = getPrevNextCoordinateDiff(mazeNode.zCoordinate, forwardDirection.zCoordinate);
+
+                BlockPos blockMid = new BlockPos(mazeNode.xCoordinate, yPos + 1, coordDiff);
+                world.setBlockAndUpdate(blockMid, Blocks.VOID_AIR.defaultBlockState());
+                BlockPos blockMidAbove = new BlockPos(mazeNode.xCoordinate, yPos + 2, coordDiff);
+                world.setBlockAndUpdate(blockMidAbove, Blocks.VOID_AIR.defaultBlockState());
+            }
+
+            BlockPos blockCurr = new BlockPos(mazeNode.xCoordinate, yPos + 1, mazeNode.zCoordinate);
+            world.setBlockAndUpdate(blockCurr, Blocks.VOID_AIR.defaultBlockState());
+            BlockPos blockCurrAbove = new BlockPos(mazeNode.xCoordinate, yPos + 2, mazeNode.zCoordinate);
+            world.setBlockAndUpdate(blockCurrAbove, Blocks.VOID_AIR.defaultBlockState());
+
+            BlockPos blockNext = new BlockPos(forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
+            world.setBlockAndUpdate(blockNext, Blocks.VOID_AIR.defaultBlockState());
+            BlockPos blockNextAbove = new BlockPos(forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
+            world.setBlockAndUpdate(blockNextAbove, Blocks.VOID_AIR.defaultBlockState());
+
+            // TODO: place monster randomly
+    //        if (mazeArr[z][x] == 0 && (z + x + random.nextInt(1, MAZE_SIZE - 1)) % (random.nextInt(1, MAZE_SIZE - 1)) == 0 && monsterPlaceCounter <= MAX_MONSTER_PER_FLOOR) {
+    //            Entity monster = monsterEntityType.create(world);
+    //            if (monster != null) {
+    //                monster.setPos(blockPos.getX(), blockPos.getY(), blockPos.getZ());
+    //                world.addFreshEntity(monster);
+    //                monsterPlaceCounter++;
+    //            }
+    //        }
+            forwardDirection.visited = true;
+
+            mazeNode = forwardDirection;
         }
-
-        backTrackStack.push(mazeNode);
-
-        Collections.shuffle(visitableDirections);
-        MazeNode forwardDirection = visitableDirections.get(0);
-
-
-        Integer coordDiff = getPrevNextCoordinateDiff(mazeNode.xCoordinate, forwardDirection.xCoordinate);
-
-        if(coordDiff != null){
-            // Carve between nodes horizontally
-            BlockPos blockMid = new BlockPos(coordDiff, yPos + 1, mazeNode.zCoordinate);
-            world.setBlockAndUpdate(blockMid, Blocks.VOID_AIR.defaultBlockState());
-            BlockPos blockMidAbove = new BlockPos(coordDiff, yPos + 2, mazeNode.zCoordinate);
-            world.setBlockAndUpdate(blockMidAbove, Blocks.VOID_AIR.defaultBlockState());
-        } else {
-            // Carve between nodes vertically
-            coordDiff = getPrevNextCoordinateDiff(mazeNode.zCoordinate, forwardDirection.zCoordinate);
-
-            BlockPos blockMid = new BlockPos(mazeNode.xCoordinate, yPos + 1, coordDiff);
-            world.setBlockAndUpdate(blockMid, Blocks.VOID_AIR.defaultBlockState());
-            BlockPos blockMidAbove = new BlockPos(mazeNode.xCoordinate, yPos + 2, coordDiff);
-            world.setBlockAndUpdate(blockMidAbove, Blocks.VOID_AIR.defaultBlockState());
-        }
-
-        BlockPos blockCurr = new BlockPos(mazeNode.xCoordinate, yPos + 1, mazeNode.zCoordinate);
-        world.setBlockAndUpdate(blockCurr, Blocks.VOID_AIR.defaultBlockState());
-        BlockPos blockCurrAbove = new BlockPos(mazeNode.xCoordinate, yPos + 2, mazeNode.zCoordinate);
-        world.setBlockAndUpdate(blockCurrAbove, Blocks.VOID_AIR.defaultBlockState());
-
-        BlockPos blockNext = new BlockPos(forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
-        world.setBlockAndUpdate(blockNext, Blocks.VOID_AIR.defaultBlockState());
-        BlockPos blockNextAbove = new BlockPos(forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
-        world.setBlockAndUpdate(blockNextAbove, Blocks.VOID_AIR.defaultBlockState());
-
-        // TODO: place monster randomly
-//        if (mazeArr[z][x] == 0 && (z + x + random.nextInt(1, MAZE_SIZE - 1)) % (random.nextInt(1, MAZE_SIZE - 1)) == 0 && monsterPlaceCounter <= MAX_MONSTER_PER_FLOOR) {
-//            Entity monster = monsterEntityType.create(world);
-//            if (monster != null) {
-//                monster.setPos(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-//                world.addFreshEntity(monster);
-//                monsterPlaceCounter++;
-//            }
-//        }
-
-        return carveMazePath(world, forwardDirection, backTrackStack, monsterEntityType, yPos);
     }
 
     private static Integer getPrevNextCoordinateDiff(int prevCoord, int nextCoord){
@@ -195,6 +199,8 @@ public class MazeStaff extends Item {
         MazeGeneratorService mazeGeneratorService = new MazeGeneratorService();
         MazeNode rootMazeNode = mazeGeneratorService.generateMazeLinkedList(MAZE_SIZE, lookPos.getX(), lookPos.getZ());
         Stack<MazeNode> backTrackStack = new Stack<>();
+
+        rootMazeNode.visited = true;
 
         carveMazePath(world, rootMazeNode, backTrackStack, monsterEntityType, yPos);
     }
