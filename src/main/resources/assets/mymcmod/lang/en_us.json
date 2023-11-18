@@ -7,5 +7,7 @@
   "item.mymcmod.wither_spawn_egg": "Spawn Wither",
   "item.mymcmod.giant_spawn_egg": "Spawn Giant",
   "item.mymcmod.illusioner_spawn_egg": "Spawn Illusioner",
-  "item.mymcmod.maze_staff": "Maze Staff"
+  "item.mymcmod.maze_staff": "Maze Staff",
+
+  "block.mymcmod.sapphire_block": "Block of Sapphire"
 }

@@ -1,5 +1,6 @@
 package com.kikoking.mymcmod;
 
+import com.kikoking.mymcmod.block.ModBlocks;
 import com.kikoking.mymcmod.item.ModCreateModeTabs;
 import com.kikoking.mymcmod.item.ModItems;
 import com.mojang.logging.LogUtils;
@@ -36,6 +37,7 @@ public class MyMcMod
         ModCreateModeTabs.register(modEventBus);
 
         ModItems.register(modEventBus);
+        ModBlocks.register(modEventBus);
 
         modEventBus.addListener(this::commonSetup);
 

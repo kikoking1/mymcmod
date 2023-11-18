@@ -1,6 +1,7 @@
 package com.kikoking.mymcmod.item;
 
 import com.kikoking.mymcmod.MyMcMod;
+import com.kikoking.mymcmod.block.ModBlocks;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -20,8 +21,13 @@ public class ModCreateModeTabs {
                     .displayItems((pParameters, pOutput) -> {
                         pOutput.accept(ModItems.SAPPHIRE.get());
                         pOutput.accept(ModItems.RAW_SAPPHIRE.get());
+                        pOutput.accept(ModItems.ENDER_DRAGON_SPAWN_EGG.get());
+                        pOutput.accept(ModItems.GIANT_SPAWN_EGG.get());
+                        pOutput.accept(ModItems.ILLUSIONER_SPAWN_EGG.get());
+                        pOutput.accept(ModItems.MAZE_STAFF.get());
+                        pOutput.accept(ModItems.WITHER_SPAWN_EGG.get());
 
-                        pOutput.accept(Items.DIAMOND);
+                        pOutput.accept(ModBlocks.SAPPHIRE_BLOCK.get());
 
                     })
                     .build());

@@ -1,6 +1,7 @@
 package com.kikoking.mymcmod.item;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.Tuple;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +9,7 @@ import java.util.Random;
 
 public class MazeGeneratorService {
 
-    public MazeNode generateMazeLinkedList(int MAZE_SIZE, int xPos, int zPos) {
+    public Tuple<MazeNode, MazeNode> generateMazeLinkedList(int MAZE_SIZE, int xPos, int zPos) {
         MAZE_SIZE = MAZE_SIZE / 2;
         MazeNode mazeRootNode = new MazeNode(xPos, zPos);
         MazeNode cellPrev = mazeRootNode;
@@ -44,7 +45,9 @@ public class MazeGeneratorService {
             y++;
         }
 
-        return mazeRootNode;
+        MazeNode mazeTailNode = cellPrev;
+
+        return new Tuple<>(mazeRootNode, mazeTailNode);
     }
 
     public void printList(MazeNode head) {

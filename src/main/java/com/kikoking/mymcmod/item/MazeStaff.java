@@ -1,10 +1,7 @@
 package com.kikoking.mymcmod.item;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.util.Tuple;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
@@ -17,23 +14,22 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
+import net.minecraft.world.level.block.SlimeBlock;
+import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
 
-//player.setPos(lookPos.getX(), lookPos.getY(), lookPos.getZ());
+import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
 
 public class MazeStaff extends Item {
-
-    private static final int WALL = 1;
-    private static final int PATH = 0;
     private static final int MAZE_SIZE = 50; // must be even number
-    private static final int MAZE_HEIGHT = 1;
+    private static final int MAZE_HEIGHT = 2;
     private static final int MAX_MONSTER_PER_FLOOR = 4;
-    private static final Random random = new Random();
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(Blocks.BEDROCK, EntityType.ZOMBIE),
             new Tuple<>(Blocks.POLISHED_DEEPSLATE, EntityType.SPIDER),
@@ -76,20 +72,53 @@ public class MazeStaff extends Item {
                 int zPos = lookPos.getZ()+z;
 
                 if(floorLevel == 0){
-                    BlockPos blockPos = new BlockPos(xPos, yPos, zPos);
-                    world.setBlockAndUpdate(blockPos, blockType.defaultBlockState());
+                    setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos, zPos);
                 }
 
-                BlockPos blockPos = new BlockPos(xPos, yPos+1, zPos);
-                world.setBlockAndUpdate(blockPos, blockType.defaultBlockState());
-
-                BlockPos blockAbovePos = new BlockPos(xPos, yPos+2, zPos);
-                world.setBlockAndUpdate(blockAbovePos, blockType.defaultBlockState());
-
-                BlockPos ceilingBlockPos = new BlockPos(xPos, yPos+3, zPos);
-                world.setBlockAndUpdate(ceilingBlockPos, blockType.defaultBlockState());
+                setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+1, zPos);
+                setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+2, zPos);
+                setMCBlockByCoordinates(world, Blocks.GLASS.defaultBlockState(), xPos, yPos+3, zPos);
             }
         }
+    }
+
+    private static void generateMaze(Level world, int floorLevel, BlockPos lookPos, int blockTypeIdx){
+
+        int floorLevelOffset = getFloorLevelOffset(floorLevel);
+        int yPos = lookPos.getY() + floorLevelOffset;
+        EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
+
+        MazeGeneratorService mazeGeneratorService = new MazeGeneratorService();
+
+        Tuple<MazeNode, MazeNode> mazeStartEndNodes = mazeGeneratorService.generateMazeLinkedList(MAZE_SIZE, lookPos.getX(), lookPos.getZ());
+        MazeNode rootMazeNode = mazeStartEndNodes.getA();
+        MazeNode tailMazeNode = mazeStartEndNodes.getB();
+
+        Stack<MazeNode> backTrackStack = new Stack<>();
+
+        rootMazeNode.visited = true;
+
+        if(floorLevel == 0) {
+            // Carve Bottom Floor Entrance
+            setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), rootMazeNode.xCoordinate-1, yPos + 1, rootMazeNode.zCoordinate);
+            setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), rootMazeNode.xCoordinate-1, yPos + 2, rootMazeNode.zCoordinate);
+        }
+
+        // carve root node, starting point
+        setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), rootMazeNode.xCoordinate, yPos + 1, rootMazeNode.zCoordinate);
+        setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), rootMazeNode.xCoordinate, yPos + 2, rootMazeNode.zCoordinate);
+
+        carveMazePath(world, rootMazeNode, backTrackStack, monsterEntityType, yPos);
+
+        // carve tail node, finish point
+        MazeNode finishPointNode = tailMazeNode;
+
+        if(floorLevel % 2 != 0){
+            finishPointNode = rootMazeNode;
+        }
+
+        setMCBlockByCoordinates(world, SAPPHIRE_BLOCK.get().defaultBlockState(), finishPointNode.xCoordinate, yPos, finishPointNode.zCoordinate);
+        setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), finishPointNode.xCoordinate, yPos + 3, finishPointNode.zCoordinate);
     }
 
     private static void carveMazePath(Level world, MazeNode mazeNode, Stack<MazeNode> backTrackStack, EntityType monsterEntityType, int yPos) {
@@ -117,19 +146,19 @@ public class MazeStaff extends Item {
             Integer coordBetween = getPrevNextCoordinateDiff(mazeNode.xCoordinate, forwardDirection.xCoordinate);
             if (coordBetween != null) {
                 // Carve between nodes x axis
-                carveMCBlockByCoordinates(world, coordBetween, yPos + 1, mazeNode.zCoordinate);
-                carveMCBlockByCoordinates(world, coordBetween, yPos + 2, mazeNode.zCoordinate);
+                setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), coordBetween, yPos + 1, mazeNode.zCoordinate);
+                setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), coordBetween, yPos + 2, mazeNode.zCoordinate);
             } else {
                 // Carve between nodes z axis
                 coordBetween = getPrevNextCoordinateDiff(mazeNode.zCoordinate, forwardDirection.zCoordinate);
 
-                carveMCBlockByCoordinates(world, mazeNode.xCoordinate, yPos + 1, coordBetween);
-                carveMCBlockByCoordinates(world, mazeNode.xCoordinate, yPos + 2, coordBetween);
+                setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), mazeNode.xCoordinate, yPos + 1, coordBetween);
+                setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), mazeNode.xCoordinate, yPos + 2, coordBetween);
             }
 
             // carve next
-            carveMCBlockByCoordinates(world, forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
-            carveMCBlockByCoordinates(world, forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
+            setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
+            setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
 
             if (loopCount % 3 == 0 && monsterPlacedCounter < MAX_MONSTER_PER_FLOOR) {
                 Entity monster = monsterEntityType.create(world);
@@ -144,6 +173,10 @@ public class MazeStaff extends Item {
             mazeNode = forwardDirection;
             loopCount++;
         }
+    }
+
+    private static void setMCBlockByCoordinates(Level world, BlockState blockState, int xCoordinate, int yCoordinate, int zCoordinate){
+        world.setBlockAndUpdate(new BlockPos(xCoordinate, yCoordinate, zCoordinate), blockState);
     }
 
     private static Integer getPrevNextCoordinateDiff(int prevCoord, int nextCoord){
@@ -178,35 +211,6 @@ public class MazeStaff extends Item {
             }
         }
         return directionList;
-    }
-
-    private static void generateMaze(Level world, int floorLevel, BlockPos lookPos, int blockTypeIdx){
-
-        int floorLevelOffset = getFloorLevelOffset(floorLevel);
-        int yPos = lookPos.getY() + floorLevelOffset;
-        EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
-
-        // TODO: Create Start and Finish
-
-        MazeGeneratorService mazeGeneratorService = new MazeGeneratorService();
-        MazeNode rootMazeNode = mazeGeneratorService.generateMazeLinkedList(MAZE_SIZE, lookPos.getX(), lookPos.getZ());
-        Stack<MazeNode> backTrackStack = new Stack<>();
-
-        rootMazeNode.visited = true;
-
-        // Carve Entrance
-        carveMCBlockByCoordinates(world, rootMazeNode.xCoordinate-1, yPos + 1, rootMazeNode.zCoordinate);
-        carveMCBlockByCoordinates(world, rootMazeNode.xCoordinate-1, yPos + 2, rootMazeNode.zCoordinate);
-
-        // carve root node
-        carveMCBlockByCoordinates(world, rootMazeNode.xCoordinate, yPos + 1, rootMazeNode.zCoordinate);
-        carveMCBlockByCoordinates(world, rootMazeNode.xCoordinate, yPos + 2, rootMazeNode.zCoordinate);
-
-        carveMazePath(world, rootMazeNode, backTrackStack, monsterEntityType, yPos);
-    }
-
-    private static void carveMCBlockByCoordinates(Level world, int xCoordinate, int yCoordinate, int zCoordinate){
-        world.setBlockAndUpdate(new BlockPos(xCoordinate, yCoordinate, zCoordinate), Blocks.VOID_AIR.defaultBlockState());
     }
 
     private static int getFloorLevelOffset(int floorLevel){
