@@ -14,11 +14,7 @@ import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.SlimeBlock;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -28,18 +24,16 @@ import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
 
 public class MazeStaff extends Item {
     private static final int MAZE_SIZE = 50; // must be even number
-    private static final int MAZE_HEIGHT = 2;
+    private static final int MAZE_HEIGHT = 7;
     private static final int MAX_MONSTER_PER_FLOOR = 4;
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
-            new Tuple<>(Blocks.BEDROCK, EntityType.ZOMBIE),
-            new Tuple<>(Blocks.POLISHED_DEEPSLATE, EntityType.SPIDER),
-            new Tuple<>(Blocks.BEDROCK, EntityType.SKELETON),
-            new Tuple<>(Blocks.POLISHED_DEEPSLATE, EntityType.ZOMBIE_VILLAGER),
-            new Tuple<>(Blocks.BEDROCK, EntityType.PILLAGER),
-            new Tuple<>(Blocks.POLISHED_DEEPSLATE, EntityType.HUSK),
-            new Tuple<>(Blocks.BEDROCK, EntityType.VINDICATOR),
-            new Tuple<>(Blocks.POLISHED_DEEPSLATE, EntityType.WITCH),
-            new Tuple<>(Blocks.BEDROCK, EntityType.ILLUSIONER),
+            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.HUSK),
+            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.SPIDER),
+            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.SKELETON),
+            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.ZOMBIE_VILLAGER),
+            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.PILLAGER),
+            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.VINDICATOR),
+            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.WITCH),
     };
 
     public MazeStaff(Properties properties) {
@@ -77,7 +71,7 @@ public class MazeStaff extends Item {
 
                 setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+1, zPos);
                 setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+2, zPos);
-                setMCBlockByCoordinates(world, Blocks.GLASS.defaultBlockState(), xPos, yPos+3, zPos);
+                setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+3, zPos);
             }
         }
     }
