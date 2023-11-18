@@ -23,8 +23,8 @@ import java.util.*;
 import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
 
 public class MazeStaff extends Item {
-    private static final int MAZE_SIZE = 50; // must be even number
-    private static final int MAZE_HEIGHT = 7;
+    private static final int MAZE_SIZE = 26; // must be even number
+    private static final int MAZE_HEIGHT = 10;
     private static final int MAX_MONSTER_PER_FLOOR = 4;
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(Blocks.GOLD_BLOCK, EntityType.HUSK),
