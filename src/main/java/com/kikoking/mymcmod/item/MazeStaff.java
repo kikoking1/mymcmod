@@ -68,8 +68,9 @@ public class MazeStaff extends Item {
 
     public static void fillFloor(Level world, int floorLevel, BlockPos lookPos, Block blockType) {
         int floorLevelOffset = getFloorLevelOffset(floorLevel);
-        for(int z = 0; z < MAZE_SIZE; z++){
-            for(int x = 0; x < MAZE_SIZE; x++){
+        // Offset -1 and +2 here so that the perimeter is a solid border.
+        for(int z = -1; z < MAZE_SIZE+2; z++){
+            for(int x = -1; x < MAZE_SIZE+2; x++){
                 int xPos = lookPos.getX()+x;
                 int yPos = lookPos.getY()+floorLevelOffset;
                 int zPos = lookPos.getZ()+z;
@@ -93,6 +94,8 @@ public class MazeStaff extends Item {
 
     private static void carveMazePath(Level world, MazeNode mazeNode, Stack<MazeNode> backTrackStack, EntityType monsterEntityType, int yPos) {
 
+        var loopCount = 0;
+        var monsterPlacedCounter = 0;
         while(true) {
             List<MazeNode> visitableDirections = getVisitableDirections(mazeNode);
 
@@ -110,47 +113,36 @@ public class MazeStaff extends Item {
             Collections.shuffle(visitableDirections);
             MazeNode forwardDirection = visitableDirections.get(0);
 
-
-            Integer coordDiff = getPrevNextCoordinateDiff(mazeNode.xCoordinate, forwardDirection.xCoordinate);
-
-            if (coordDiff != null) {
-                // Carve between nodes horizontally
-                BlockPos blockMid = new BlockPos(coordDiff, yPos + 1, mazeNode.zCoordinate);
-                world.setBlockAndUpdate(blockMid, Blocks.VOID_AIR.defaultBlockState());
-                BlockPos blockMidAbove = new BlockPos(coordDiff, yPos + 2, mazeNode.zCoordinate);
-                world.setBlockAndUpdate(blockMidAbove, Blocks.VOID_AIR.defaultBlockState());
+            // carve between nodes
+            Integer coordBetween = getPrevNextCoordinateDiff(mazeNode.xCoordinate, forwardDirection.xCoordinate);
+            if (coordBetween != null) {
+                // Carve between nodes x axis
+                carveMCBlockByCoordinates(world, coordBetween, yPos + 1, mazeNode.zCoordinate);
+                carveMCBlockByCoordinates(world, coordBetween, yPos + 2, mazeNode.zCoordinate);
             } else {
-                // Carve between nodes vertically
-                coordDiff = getPrevNextCoordinateDiff(mazeNode.zCoordinate, forwardDirection.zCoordinate);
+                // Carve between nodes z axis
+                coordBetween = getPrevNextCoordinateDiff(mazeNode.zCoordinate, forwardDirection.zCoordinate);
 
-                BlockPos blockMid = new BlockPos(mazeNode.xCoordinate, yPos + 1, coordDiff);
-                world.setBlockAndUpdate(blockMid, Blocks.VOID_AIR.defaultBlockState());
-                BlockPos blockMidAbove = new BlockPos(mazeNode.xCoordinate, yPos + 2, coordDiff);
-                world.setBlockAndUpdate(blockMidAbove, Blocks.VOID_AIR.defaultBlockState());
+                carveMCBlockByCoordinates(world, mazeNode.xCoordinate, yPos + 1, coordBetween);
+                carveMCBlockByCoordinates(world, mazeNode.xCoordinate, yPos + 2, coordBetween);
             }
 
-            BlockPos blockCurr = new BlockPos(mazeNode.xCoordinate, yPos + 1, mazeNode.zCoordinate);
-            world.setBlockAndUpdate(blockCurr, Blocks.VOID_AIR.defaultBlockState());
-            BlockPos blockCurrAbove = new BlockPos(mazeNode.xCoordinate, yPos + 2, mazeNode.zCoordinate);
-            world.setBlockAndUpdate(blockCurrAbove, Blocks.VOID_AIR.defaultBlockState());
+            // carve next
+            carveMCBlockByCoordinates(world, forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
+            carveMCBlockByCoordinates(world, forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
 
-            BlockPos blockNext = new BlockPos(forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
-            world.setBlockAndUpdate(blockNext, Blocks.VOID_AIR.defaultBlockState());
-            BlockPos blockNextAbove = new BlockPos(forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
-            world.setBlockAndUpdate(blockNextAbove, Blocks.VOID_AIR.defaultBlockState());
-
-            // TODO: place monster randomly
-    //        if (mazeArr[z][x] == 0 && (z + x + random.nextInt(1, MAZE_SIZE - 1)) % (random.nextInt(1, MAZE_SIZE - 1)) == 0 && monsterPlaceCounter <= MAX_MONSTER_PER_FLOOR) {
-    //            Entity monster = monsterEntityType.create(world);
-    //            if (monster != null) {
-    //                monster.setPos(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-    //                world.addFreshEntity(monster);
-    //                monsterPlaceCounter++;
-    //            }
-    //        }
+            if (loopCount % 3 == 0 && monsterPlacedCounter < MAX_MONSTER_PER_FLOOR) {
+                Entity monster = monsterEntityType.create(world);
+                if (monster != null) {
+                    monster.setPos(mazeNode.xCoordinate, yPos + 1, mazeNode.zCoordinate);
+                    world.addFreshEntity(monster);
+                    monsterPlacedCounter++;
+                }
+            }
             forwardDirection.visited = true;
 
             mazeNode = forwardDirection;
+            loopCount++;
         }
     }
 
@@ -202,7 +194,19 @@ public class MazeStaff extends Item {
 
         rootMazeNode.visited = true;
 
+        // Carve Entrance
+        carveMCBlockByCoordinates(world, rootMazeNode.xCoordinate-1, yPos + 1, rootMazeNode.zCoordinate);
+        carveMCBlockByCoordinates(world, rootMazeNode.xCoordinate-1, yPos + 2, rootMazeNode.zCoordinate);
+
+        // carve root node
+        carveMCBlockByCoordinates(world, rootMazeNode.xCoordinate, yPos + 1, rootMazeNode.zCoordinate);
+        carveMCBlockByCoordinates(world, rootMazeNode.xCoordinate, yPos + 2, rootMazeNode.zCoordinate);
+
         carveMazePath(world, rootMazeNode, backTrackStack, monsterEntityType, yPos);
+    }
+
+    private static void carveMCBlockByCoordinates(Level world, int xCoordinate, int yCoordinate, int zCoordinate){
+        world.setBlockAndUpdate(new BlockPos(xCoordinate, yCoordinate, zCoordinate), Blocks.VOID_AIR.defaultBlockState());
     }
 
     private static int getFloorLevelOffset(int floorLevel){
