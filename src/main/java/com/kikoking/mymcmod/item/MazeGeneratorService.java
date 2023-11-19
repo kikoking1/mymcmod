@@ -1,11 +1,6 @@
 package com.kikoking.mymcmod.item;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.util.Tuple;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 
 public class MazeGeneratorService {
 

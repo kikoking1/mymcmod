@@ -23,17 +23,17 @@ import java.util.*;
 import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
 
 public class MazeStaff extends Item {
-    private static final int MAZE_SIZE = 26; // must be even number
-    private static final int MAZE_HEIGHT = 10;
-    private static final int MAX_MONSTER_PER_FLOOR = 4;
+    private static final int MAZE_SIZE = 100; // must be even number, divisible by 4
+    private static final int MAZE_HEIGHT = 1;
+    private static final boolean HAS_CEILING = false;
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
-            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.HUSK),
-            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.SPIDER),
-            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.SKELETON),
-            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.ZOMBIE_VILLAGER),
-            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.PILLAGER),
-            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.VINDICATOR),
-            new Tuple<>(Blocks.GOLD_BLOCK, EntityType.WITCH),
+            new Tuple<>(Blocks.GRASS_BLOCK, EntityType.PILLAGER),
+            new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
+            new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
+            new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.VINDICATOR),
+            new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.VINDICATOR),
+            new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.WITHER_SKELETON),
+            new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.WITCH),
     };
 
     public MazeStaff(Properties properties) {
@@ -49,14 +49,14 @@ public class MazeStaff extends Item {
             int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
             Block blockType = blockTypeByTowerLevel[blockTypeIdx].getA();
 
-            fillFloor(world, floorLevel, lookPos, blockType);
+            fillFloor(world, floorLevel, lookPos, blockType, floorLevel + 1 == MAZE_HEIGHT);
             generateMaze(world, floorLevel, lookPos, blockTypeIdx);
         }
 
         return super.use(world, player, hand);
     }
 
-    public static void fillFloor(Level world, int floorLevel, BlockPos lookPos, Block blockType) {
+    public static void fillFloor(Level world, int floorLevel, BlockPos lookPos, Block blockType, boolean isLastFloor) {
         int floorLevelOffset = getFloorLevelOffset(floorLevel);
         // Offset -1 and +2 here so that the perimeter is a solid border.
         for(int z = -1; z < MAZE_SIZE+2; z++){
@@ -71,7 +71,13 @@ public class MazeStaff extends Item {
 
                 setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+1, zPos);
                 setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+2, zPos);
-                setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+3, zPos);
+
+                // ceiling
+                // don't create ceiling if it's the last floor, and HAS_CEILING is false
+                if (!isLastFloor || HAS_CEILING) {
+                    setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+3, zPos);
+                }
+
             }
         }
     }
@@ -102,11 +108,13 @@ public class MazeStaff extends Item {
         setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), rootMazeNode.xCoordinate, yPos + 1, rootMazeNode.zCoordinate);
         setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), rootMazeNode.xCoordinate, yPos + 2, rootMazeNode.zCoordinate);
 
+        // Run maze carve(generation) algorithm
         carveMazePath(world, rootMazeNode, backTrackStack, monsterEntityType, yPos);
 
-        // carve tail node, finish point
+        // carve finish point
         MazeNode finishPointNode = tailMazeNode;
 
+        // Alternate finish points on either side of the maze, for each floor
         if(floorLevel % 2 != 0){
             finishPointNode = rootMazeNode;
         }
@@ -154,7 +162,7 @@ public class MazeStaff extends Item {
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
 
-            if (loopCount % 3 == 0 && monsterPlacedCounter < MAX_MONSTER_PER_FLOOR) {
+            if (loopCount > MAZE_SIZE * 2 && loopCount % 7 == 0 && monsterPlacedCounter < MAZE_SIZE / 4) {
                 Entity monster = monsterEntityType.create(world);
                 if (monster != null) {
                     monster.setPos(mazeNode.xCoordinate, yPos + 1, mazeNode.zCoordinate);
