@@ -26,8 +26,9 @@ import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
 
 public class MazeStaff extends Item {
     private static final int MAZE_SIZE = 24; // must be even number, divisible by 4
-    private static final int MAZE_HEIGHT = 1;
+    private static final int MAZE_HEIGHT = 10;
     private static final boolean HAS_CEILING = false;
+    private static final int ATTACK_DAMAGE = 6;
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(Blocks.GRASS_BLOCK, EntityType.PILLAGER),
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
@@ -60,7 +61,7 @@ public class MazeStaff extends Item {
 
     @Override
     public boolean hurtEnemy(ItemStack itemStack, LivingEntity enemy, LivingEntity player) {
-        enemy.setHealth(enemy.getHealth() - 25);
+        enemy.setHealth(enemy.getHealth() - ATTACK_DAMAGE);
         super.hurtEnemy(itemStack, enemy, player);
         return true;
     }
