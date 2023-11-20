@@ -109,6 +109,7 @@ public class MazeStaff extends Item {
 
         if(floorLevel == 0) {
             // Carve Bottom Floor Entrance
+            setMCBlockByCoordinates(world, Blocks.OAK_STAIRS.defaultBlockState().rotate(Rotation.CLOCKWISE_90), rootMazeNode.xCoordinate-2, yPos, rootMazeNode.zCoordinate);
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), rootMazeNode.xCoordinate-1, yPos + 1, rootMazeNode.zCoordinate);
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), rootMazeNode.xCoordinate-1, yPos + 2, rootMazeNode.zCoordinate);
         }
