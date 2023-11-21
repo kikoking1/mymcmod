@@ -11,6 +11,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.UseAnim;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -21,16 +22,20 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
 
 public class MazeStaff extends Item {
-    private static final int MAZE_SIZE = 24; // must be even number, divisible by 4
-    private static final int MAZE_HEIGHT = 10;
-    private static final boolean HAS_CEILING = false;
-    private static final int ATTACK_DAMAGE = 2;
+    private static final int DEFAULT_MAZE_SIZE = 24;
+    private int mazeSize = 24; // must be even number, divisible by 4
+    private static final int ATTACK_DAMAGE = 3;
+    private BlockPos lookPos;
+    private int floorsCount = 0;
+    private Stack<Integer> useIdStack = new Stack<>();
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
-            new Tuple<>(Blocks.GRASS_BLOCK, EntityType.PILLAGER),
+            new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.VINDICATOR),
@@ -45,16 +50,36 @@ public class MazeStaff extends Item {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
-        BlockHitResult ray = rayTrace(world, player, ClipContext.Fluid.NONE);
-        BlockPos lookPos = ray.getBlockPos().relative(ray.getDirection());
 
-        for(int floorLevel = 0; floorLevel < MAZE_HEIGHT; floorLevel++){
-            int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
-            Block blockType = blockTypeByTowerLevel[blockTypeIdx].getA();
+        if(!world.isClientSide) this.floorsCount += 1;
+        Integer stackId = this.floorsCount;
+        if(!world.isClientSide) this.useIdStack.push(stackId);
 
-            fillFloor(world, floorLevel, lookPos, blockType, floorLevel + 1 == MAZE_HEIGHT);
-            generateMaze(world, floorLevel, lookPos, blockTypeIdx, floorLevel + 1 == MAZE_HEIGHT);
-        }
+        CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> {
+
+            if(Objects.equals(this.useIdStack.peek(), stackId)){
+                this.useIdStack.clear();
+                BlockHitResult ray = rayTrace(world, player, ClipContext.Fluid.NONE);
+                this.lookPos = ray.getBlockPos().relative(ray.getDirection());
+
+                if(this.floorsCount == 1){
+                    this.mazeSize = 100;
+                } else {
+                    this.mazeSize = DEFAULT_MAZE_SIZE;
+                }
+
+                for(int floorLevel = 0; floorLevel < this.floorsCount; floorLevel++){
+                    int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
+                    Block blockType = this.floorsCount == 1 ? Blocks.GRASS_BLOCK : blockTypeByTowerLevel[blockTypeIdx].getA();
+                    EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
+
+                    fillFloor(world, floorLevel, this.lookPos, blockType, floorLevel + 1 == this.floorsCount);
+                    generateMaze(world, floorLevel, this.lookPos, monsterEntityType, floorLevel + 1 == this.floorsCount);
+                }
+
+                this.floorsCount = 0;
+            }
+        });
 
         return super.use(world, player, hand);
     }
@@ -66,11 +91,22 @@ public class MazeStaff extends Item {
         return true;
     }
 
-    public static void fillFloor(Level world, int floorLevel, BlockPos lookPos, Block blockType, boolean isLastFloor) {
+    @Override
+    public int getUseDuration(ItemStack stack) {
+        // Set the duration for how long the player can use the item (in ticks)
+        return 200; // 10 seconds (20 ticks per second)
+    }
+
+    @Override
+    public UseAnim getUseAnimation(ItemStack stack) {
+        return UseAnim.BOW;
+    }
+
+    public void fillFloor(Level world, int floorLevel, BlockPos lookPos, Block blockType, boolean isLastFloor) {
         int floorLevelOffset = getFloorLevelOffset(floorLevel);
         // Offset -1 and +2 here so that the perimeter is a solid border.
-        for(int z = -1; z < MAZE_SIZE+2; z++){
-            for(int x = -1; x < MAZE_SIZE+2; x++){
+        for(int z = -1; z < this.mazeSize+2; z++){
+            for(int x = -1; x < this.mazeSize+2; x++){
                 int xPos = lookPos.getX()+x;
                 int yPos = lookPos.getY()+floorLevelOffset;
                 int zPos = lookPos.getZ()+z;
@@ -83,8 +119,8 @@ public class MazeStaff extends Item {
                 setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+2, zPos);
 
                 // ceiling
-                // don't create ceiling if it's the last floor, and HAS_CEILING is false
-                if (!isLastFloor || HAS_CEILING) {
+                // don't create ceiling if it's the last floor
+                if (!isLastFloor) {
                     setMCBlockByCoordinates(world, blockType.defaultBlockState(), xPos, yPos+3, zPos);
                 }
 
@@ -92,15 +128,14 @@ public class MazeStaff extends Item {
         }
     }
 
-    private static void generateMaze(Level world, int floorLevel, BlockPos lookPos, int blockTypeIdx, boolean isLastFloor){
+    private void generateMaze(Level world, int floorLevel, BlockPos lookPos, EntityType monsterEntityType, boolean isLastFloor){
 
         int floorLevelOffset = getFloorLevelOffset(floorLevel);
         int yPos = lookPos.getY() + floorLevelOffset;
-        EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
 
         MazeGeneratorService mazeGeneratorService = new MazeGeneratorService();
 
-        Tuple<MazeNode, MazeNode> mazeStartEndNodes = mazeGeneratorService.generateMazeLinkedList(MAZE_SIZE, lookPos.getX(), lookPos.getZ());
+        Tuple<MazeNode, MazeNode> mazeStartEndNodes = mazeGeneratorService.generateMazeLinkedList(this.mazeSize, lookPos.getX(), lookPos.getZ());
         MazeNode rootMazeNode = mazeStartEndNodes.getA();
         MazeNode tailMazeNode = mazeStartEndNodes.getB();
 
@@ -136,7 +171,7 @@ public class MazeStaff extends Item {
         setMazeFloorExit(world, isOddFloor, isLastFloor, finishPointNode.xCoordinate, yPos, finishPointNode.zCoordinate);
     }
 
-    private static void setMazeFloorExit(Level world, boolean isOddFloor, boolean isLastFloor, int xPos, int yPos, int zPoz) {
+    private void setMazeFloorExit(Level world, boolean isOddFloor, boolean isLastFloor, int xPos, int yPos, int zPoz) {
         setMCBlockByCoordinates(world, SAPPHIRE_BLOCK.get().defaultBlockState(), xPos, yPos, zPoz);
         setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), xPos, yPos + 3, zPoz);
         if(isOddFloor) {
@@ -154,7 +189,7 @@ public class MazeStaff extends Item {
         }
     }
 
-    private static void carveMazePath(Level world, MazeNode mazeNode, Stack<MazeNode> backTrackStack, EntityType monsterEntityType, int yPos) {
+    private void carveMazePath(Level world, MazeNode mazeNode, Stack<MazeNode> backTrackStack, EntityType monsterEntityType, int yPos) {
 
         var loopCount = 0;
         var monsterPlacedCounter = 0;
@@ -193,7 +228,7 @@ public class MazeStaff extends Item {
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
 
-            if (loopCount > MAZE_SIZE * 2 && loopCount % 7 == 0 && monsterPlacedCounter < MAZE_SIZE / 4) {
+            if (loopCount > this.mazeSize * 2 && loopCount % 7 == 0 && monsterPlacedCounter < this.mazeSize / 4) {
                 Entity monster = monsterEntityType.create(world);
                 if (monster != null) {
                     monster.setPos(mazeNode.xCoordinate, yPos + 1, mazeNode.zCoordinate);
@@ -208,11 +243,11 @@ public class MazeStaff extends Item {
         }
     }
 
-    private static void setMCBlockByCoordinates(Level world, BlockState blockState, int xCoordinate, int yCoordinate, int zCoordinate){
+    private void setMCBlockByCoordinates(Level world, BlockState blockState, int xCoordinate, int yCoordinate, int zCoordinate){
         world.setBlockAndUpdate(new BlockPos(xCoordinate, yCoordinate, zCoordinate), blockState);
     }
 
-    private static Integer getPrevNextCoordinateDiff(int prevCoord, int nextCoord){
+    private Integer getPrevNextCoordinateDiff(int prevCoord, int nextCoord){
 
         if(prevCoord == nextCoord){
             return null;
@@ -221,7 +256,7 @@ public class MazeStaff extends Item {
         return prevCoord < nextCoord ? prevCoord +1 : nextCoord +1;
     }
 
-    private static List<MazeNode> getVisitableDirections(MazeNode mazeNode) {
+    private List<MazeNode> getVisitableDirections(MazeNode mazeNode) {
         List<MazeNode> directionList = new ArrayList<>();
         if(mazeNode.up != null){
             if(!mazeNode.up.visited){
@@ -246,11 +281,11 @@ public class MazeStaff extends Item {
         return directionList;
     }
 
-    private static int getFloorLevelOffset(int floorLevel){
+    private int getFloorLevelOffset(int floorLevel){
         return floorLevel*3;
     }
 
-    private static BlockHitResult rayTrace(Level world, Player player, ClipContext.Fluid fluidMode) {
+    private BlockHitResult rayTrace(Level world, Player player, ClipContext.Fluid fluidMode) {
         double range = 200;
 
         float f = player.getXRot();
