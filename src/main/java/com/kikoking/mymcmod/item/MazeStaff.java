@@ -22,18 +22,13 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
 
 public class MazeStaff extends Item {
-    private static final int DEFAULT_MAZE_SIZE = 24;
-    private int mazeSize = 24; // must be even number, divisible by 4
+    private static final int MAZE_SIZE = 24; // must be even number, divisible by 4
     private static final int ATTACK_DAMAGE = 3;
-    private BlockPos lookPos;
-    private int floorsCount = 0;
-    private Stack<Integer> useIdStack = new Stack<>();
+    private static final int MAZE_HEIGHT = 10;
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
@@ -51,35 +46,17 @@ public class MazeStaff extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
 
-        if(!world.isClientSide) this.floorsCount += 1;
-        Integer stackId = this.floorsCount;
-        if(!world.isClientSide) this.useIdStack.push(stackId);
+        BlockHitResult ray = rayTrace(world, player, ClipContext.Fluid.NONE);
+        BlockPos lookPos = ray.getBlockPos().relative(ray.getDirection());
 
-        CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() -> {
+        for(int floorLevel = 0; floorLevel < MAZE_HEIGHT; floorLevel++){
+            int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
+            Block blockType = MAZE_HEIGHT == 1 ? Blocks.GRASS_BLOCK : blockTypeByTowerLevel[blockTypeIdx].getA();
+            EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
 
-            if(Objects.equals(this.useIdStack.peek(), stackId)){
-                this.useIdStack.clear();
-                BlockHitResult ray = rayTrace(world, player, ClipContext.Fluid.NONE);
-                this.lookPos = ray.getBlockPos().relative(ray.getDirection());
-
-                if(this.floorsCount == 1){
-                    this.mazeSize = 100;
-                } else {
-                    this.mazeSize = DEFAULT_MAZE_SIZE;
-                }
-
-                for(int floorLevel = 0; floorLevel < this.floorsCount; floorLevel++){
-                    int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
-                    Block blockType = this.floorsCount == 1 ? Blocks.GRASS_BLOCK : blockTypeByTowerLevel[blockTypeIdx].getA();
-                    EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
-
-                    fillFloor(world, floorLevel, this.lookPos, blockType, floorLevel + 1 == this.floorsCount);
-                    generateMaze(world, floorLevel, this.lookPos, monsterEntityType, floorLevel + 1 == this.floorsCount);
-                }
-
-                this.floorsCount = 0;
-            }
-        });
+            fillFloor(world, floorLevel, lookPos, blockType, floorLevel + 1 == MAZE_HEIGHT);
+            generateMaze(world, floorLevel, lookPos, monsterEntityType, floorLevel + 1 == MAZE_HEIGHT);
+        }
 
         return super.use(world, player, hand);
     }
@@ -105,8 +82,8 @@ public class MazeStaff extends Item {
     public void fillFloor(Level world, int floorLevel, BlockPos lookPos, Block blockType, boolean isLastFloor) {
         int floorLevelOffset = getFloorLevelOffset(floorLevel);
         // Offset -1 and +2 here so that the perimeter is a solid border.
-        for(int z = -1; z < this.mazeSize+2; z++){
-            for(int x = -1; x < this.mazeSize+2; x++){
+        for(int z = -1; z < MAZE_SIZE+2; z++){
+            for(int x = -1; x < MAZE_SIZE+2; x++){
                 int xPos = lookPos.getX()+x;
                 int yPos = lookPos.getY()+floorLevelOffset;
                 int zPos = lookPos.getZ()+z;
@@ -135,7 +112,7 @@ public class MazeStaff extends Item {
 
         MazeGeneratorService mazeGeneratorService = new MazeGeneratorService();
 
-        Tuple<MazeNode, MazeNode> mazeStartEndNodes = mazeGeneratorService.generateMazeLinkedList(this.mazeSize, lookPos.getX(), lookPos.getZ());
+        Tuple<MazeNode, MazeNode> mazeStartEndNodes = mazeGeneratorService.generateMazeLinkedList(MAZE_SIZE, lookPos.getX(), lookPos.getZ());
         MazeNode rootMazeNode = mazeStartEndNodes.getA();
         MazeNode tailMazeNode = mazeStartEndNodes.getB();
 
@@ -228,7 +205,7 @@ public class MazeStaff extends Item {
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
 
-            if (loopCount > this.mazeSize * 2 && loopCount % 7 == 0 && monsterPlacedCounter < this.mazeSize / 4) {
+            if (loopCount > MAZE_SIZE * 2 && loopCount % 7 == 0 && monsterPlacedCounter < MAZE_SIZE / 4) {
                 Entity monster = monsterEntityType.create(world);
                 if (monster != null) {
                     monster.setPos(mazeNode.xCoordinate, yPos + 1, mazeNode.zCoordinate);
