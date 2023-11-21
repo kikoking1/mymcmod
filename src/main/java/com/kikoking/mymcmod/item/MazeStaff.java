@@ -17,6 +17,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -28,7 +30,7 @@ import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
 public class MazeStaff extends Item {
     private static final int MAZE_SIZE = 24; // must be even number, divisible by 4
     private static final int ATTACK_DAMAGE = 3;
-    private static final int MAZE_HEIGHT = 10;
+    private static final int MAZE_HEIGHT = 11;
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
@@ -156,13 +158,40 @@ public class MazeStaff extends Item {
             setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState().rotate(Rotation.CLOCKWISE_180), xPos, yPos + 2, zPoz);
             if(!isLastFloor){
                 setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState().rotate(Rotation.CLOCKWISE_180), xPos, yPos + 3, zPoz);
+            } else {
+                setMazeChest(world, xPos - 1, yPos + 3, zPoz - 1, Rotation.CLOCKWISE_180);
             }
         } else {
             setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState(), xPos, yPos + 1, zPoz);
             setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState(), xPos, yPos + 2, zPoz);
             if(!isLastFloor) {
                 setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState(), xPos, yPos + 3, zPoz);
+            } else {
+                setMazeChest(world, xPos + 1, yPos + 3, zPoz + 1, null);
             }
+        }
+    }
+
+    private void setMazeChest(Level world, int xPos, int yPos, int zPoz, Rotation rotation) {
+        BlockPos chestBlockPos;
+        if(rotation != null){
+            chestBlockPos = setMCBlockByCoordinates(world, Blocks.CHEST.defaultBlockState().rotate(rotation), xPos, yPos, zPoz);
+        } else {
+            chestBlockPos = setMCBlockByCoordinates(world, Blocks.CHEST.defaultBlockState(), xPos, yPos, zPoz);
+        }
+
+        // Get the TileEntity at the specified position
+        ChestBlockEntity chestBlockEntity = (ChestBlockEntity) world.getBlockEntity(chestBlockPos);
+
+        // Populate the chest with items (replace with your desired items)
+        if (chestBlockEntity != null) {
+            ItemStack itemStack1 = new ItemStack(Blocks.DIAMOND_BLOCK);
+            ItemStack itemStack2 = new ItemStack(Blocks.GOLD_BLOCK);
+            ItemStack itemStack3 = new ItemStack(Blocks.IRON_BLOCK);
+
+            chestBlockEntity.setItem(0, itemStack1);
+            chestBlockEntity.setItem(1, itemStack2);
+            chestBlockEntity.setItem(2, itemStack3);
         }
     }
 
@@ -220,8 +249,11 @@ public class MazeStaff extends Item {
         }
     }
 
-    private void setMCBlockByCoordinates(Level world, BlockState blockState, int xCoordinate, int yCoordinate, int zCoordinate){
+    private BlockPos setMCBlockByCoordinates(Level world, BlockState blockState, int xCoordinate, int yCoordinate, int zCoordinate){
+        BlockPos blockPos = new BlockPos(xCoordinate, yCoordinate, zCoordinate);
         world.setBlockAndUpdate(new BlockPos(xCoordinate, yCoordinate, zCoordinate), blockState);
+
+        return blockPos;
     }
 
     private Integer getPrevNextCoordinateDiff(int prevCoord, int nextCoord){
