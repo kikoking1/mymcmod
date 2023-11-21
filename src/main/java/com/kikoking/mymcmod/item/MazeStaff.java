@@ -28,7 +28,7 @@ public class MazeStaff extends Item {
     private static final int MAZE_SIZE = 24; // must be even number, divisible by 4
     private static final int MAZE_HEIGHT = 10;
     private static final boolean HAS_CEILING = false;
-    private static final int ATTACK_DAMAGE = 6;
+    private static final int ATTACK_DAMAGE = 2;
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(Blocks.GRASS_BLOCK, EntityType.PILLAGER),
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
@@ -53,7 +53,7 @@ public class MazeStaff extends Item {
             Block blockType = blockTypeByTowerLevel[blockTypeIdx].getA();
 
             fillFloor(world, floorLevel, lookPos, blockType, floorLevel + 1 == MAZE_HEIGHT);
-            generateMaze(world, floorLevel, lookPos, blockTypeIdx);
+            generateMaze(world, floorLevel, lookPos, blockTypeIdx, floorLevel + 1 == MAZE_HEIGHT);
         }
 
         return super.use(world, player, hand);
@@ -92,7 +92,7 @@ public class MazeStaff extends Item {
         }
     }
 
-    private static void generateMaze(Level world, int floorLevel, BlockPos lookPos, int blockTypeIdx){
+    private static void generateMaze(Level world, int floorLevel, BlockPos lookPos, int blockTypeIdx, boolean isLastFloor){
 
         int floorLevelOffset = getFloorLevelOffset(floorLevel);
         int yPos = lookPos.getY() + floorLevelOffset;
@@ -110,6 +110,7 @@ public class MazeStaff extends Item {
 
         if(floorLevel == 0) {
             // Carve Bottom Floor Entrance
+            setMCBlockByCoordinates(world, Blocks.OAK_STAIRS.defaultBlockState().rotate(Rotation.CLOCKWISE_90), rootMazeNode.xCoordinate-3, yPos-1, rootMazeNode.zCoordinate);
             setMCBlockByCoordinates(world, Blocks.OAK_STAIRS.defaultBlockState().rotate(Rotation.CLOCKWISE_90), rootMazeNode.xCoordinate-2, yPos, rootMazeNode.zCoordinate);
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), rootMazeNode.xCoordinate-1, yPos + 1, rootMazeNode.zCoordinate);
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), rootMazeNode.xCoordinate-1, yPos + 2, rootMazeNode.zCoordinate);
@@ -125,13 +126,32 @@ public class MazeStaff extends Item {
         // carve finish point
         MazeNode finishPointNode = tailMazeNode;
 
+        boolean isOddFloor = floorLevel % 2 != 0;
+
         // Alternate finish points on either side of the maze, for each floor
-        if(floorLevel % 2 != 0){
+        if(isOddFloor) {
             finishPointNode = rootMazeNode;
         }
 
-        setMCBlockByCoordinates(world, SAPPHIRE_BLOCK.get().defaultBlockState(), finishPointNode.xCoordinate, yPos, finishPointNode.zCoordinate);
-        setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), finishPointNode.xCoordinate, yPos + 3, finishPointNode.zCoordinate);
+        setMazeFloorExit(world, isOddFloor, isLastFloor, finishPointNode.xCoordinate, yPos, finishPointNode.zCoordinate);
+    }
+
+    private static void setMazeFloorExit(Level world, boolean isOddFloor, boolean isLastFloor, int xPos, int yPos, int zPoz) {
+        setMCBlockByCoordinates(world, SAPPHIRE_BLOCK.get().defaultBlockState(), xPos, yPos, zPoz);
+        setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), xPos, yPos + 3, zPoz);
+        if(isOddFloor) {
+            setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState().rotate(Rotation.CLOCKWISE_180), xPos, yPos + 1, zPoz);
+            setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState().rotate(Rotation.CLOCKWISE_180), xPos, yPos + 2, zPoz);
+            if(!isLastFloor){
+                setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState().rotate(Rotation.CLOCKWISE_180), xPos, yPos + 3, zPoz);
+            }
+        } else {
+            setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState(), xPos, yPos + 1, zPoz);
+            setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState(), xPos, yPos + 2, zPoz);
+            if(!isLastFloor) {
+                setMCBlockByCoordinates(world, Blocks.LADDER.defaultBlockState(), xPos, yPos + 3, zPoz);
+            }
+        }
     }
 
     private static void carveMazePath(Level world, MazeNode mazeNode, Stack<MazeNode> backTrackStack, EntityType monsterEntityType, int yPos) {
