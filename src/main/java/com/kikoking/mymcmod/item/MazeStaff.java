@@ -9,9 +9,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.*;
+import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -26,6 +26,7 @@ import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
 import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
+import static net.minecraft.world.item.Items.POTION;
 
 public class MazeStaff extends Item {
     private static final int MAZE_SIZE = 24; // must be even number, divisible by 4
@@ -185,13 +186,32 @@ public class MazeStaff extends Item {
 
         // Populate the chest with items (replace with your desired items)
         if (chestBlockEntity != null) {
-            ItemStack itemStack1 = new ItemStack(Blocks.DIAMOND_BLOCK);
-            ItemStack itemStack2 = new ItemStack(Blocks.GOLD_BLOCK);
-            ItemStack itemStack3 = new ItemStack(Blocks.IRON_BLOCK);
 
-            chestBlockEntity.setItem(0, itemStack1);
-            chestBlockEntity.setItem(1, itemStack2);
-            chestBlockEntity.setItem(2, itemStack3);
+            ItemStack hoe = new ItemStack(Items.NETHERITE_HOE);
+
+            ItemStack shovel = new ItemStack(Items.NETHERITE_SHOVEL);
+            ItemStack pickaxe = new ItemStack(Items.NETHERITE_PICKAXE);
+            ItemStack axe = new ItemStack(Items.NETHERITE_AXE);
+            ItemStack sword = new ItemStack(Items.NETHERITE_SWORD);
+            ItemStack boots = new ItemStack(Items.NETHERITE_BOOTS);
+            ItemStack leggings = new ItemStack(Items.NETHERITE_LEGGINGS);
+            ItemStack chestplate = new ItemStack(Items.NETHERITE_CHESTPLATE);
+            ItemStack helmet = new ItemStack(Items.NETHERITE_HELMET);
+            ItemStack goldenEnchantedApples = new ItemStack(Items.ENCHANTED_GOLDEN_APPLE);
+            ItemStack slowFallingPotion = PotionUtils.setPotion(new ItemStack(POTION), Potions.SLOW_FALLING);
+            goldenEnchantedApples.setCount(64);
+
+            chestBlockEntity.setItem(0, hoe);
+            chestBlockEntity.setItem(1, shovel);
+            chestBlockEntity.setItem(2, pickaxe);
+            chestBlockEntity.setItem(3, axe);
+            chestBlockEntity.setItem(4, sword);
+            chestBlockEntity.setItem(5, boots);
+            chestBlockEntity.setItem(6, leggings);
+            chestBlockEntity.setItem(7, chestplate);
+            chestBlockEntity.setItem(8, helmet);
+            chestBlockEntity.setItem(9, goldenEnchantedApples);
+            chestBlockEntity.setItem(10, slowFallingPotion);
         }
     }
 
