@@ -1,5 +1,6 @@
 package com.kikoking.mymcmod.item;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Tuple;
@@ -17,7 +18,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -48,18 +48,24 @@ public class MazeStaff extends Item {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
+        ItemStack itemstack = player.getItemInHand(hand);
+        player.openItemGui(itemstack, hand);
 
-        BlockHitResult ray = rayTrace(world, player, ClipContext.Fluid.NONE);
-        BlockPos lookPos = ray.getBlockPos().relative(ray.getDirection());
-
-        for(int floorLevel = 0; floorLevel < MAZE_HEIGHT; floorLevel++){
-            int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
-            Block blockType = MAZE_HEIGHT == 1 ? Blocks.GRASS_BLOCK : blockTypeByTowerLevel[blockTypeIdx].getA();
-            EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
-
-            fillFloor(world, floorLevel, lookPos, blockType, floorLevel + 1 == MAZE_HEIGHT);
-            generateMaze(world, floorLevel, lookPos, monsterEntityType, floorLevel + 1 == MAZE_HEIGHT);
+        if(world.isClientSide){
+            Minecraft.getInstance().setScreen(new MazeStaffSettingsGuiScreen());
         }
+
+//        BlockHitResult ray = rayTrace(world, player, ClipContext.Fluid.NONE);
+//        BlockPos lookPos = ray.getBlockPos().relative(ray.getDirection());
+//
+//        for(int floorLevel = 0; floorLevel < MAZE_HEIGHT; floorLevel++){
+//            int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
+//            Block blockType = MAZE_HEIGHT == 1 ? Blocks.GRASS_BLOCK : blockTypeByTowerLevel[blockTypeIdx].getA();
+//            EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
+//
+//            fillFloor(world, floorLevel, lookPos, blockType, floorLevel + 1 == MAZE_HEIGHT);
+//            generateMaze(world, floorLevel, lookPos, monsterEntityType, floorLevel + 1 == MAZE_HEIGHT);
+//        }
 
         return super.use(world, player, hand);
     }
