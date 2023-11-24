@@ -9,5 +9,10 @@
   "item.mymcmod.illusioner_spawn_egg": "Spawn Illusioner",
   "item.mymcmod.maze_staff": "Maze Staff",
 
-  "block.mymcmod.sapphire_block": "Block of Sapphire"
+  "block.mymcmod.sapphire_block": "Block of Sapphire",
+
+  "gui.mymcmod.maze_staff_screen.title": "Maze Staff Settings",
+  "gui.mymcmod.maze_staff_screen.edit_box.maze_height": "# of Floors",
+  "gui.mymcmod.maze_staff_screen.button_label.create_maze": "Create Maze"
+
 }

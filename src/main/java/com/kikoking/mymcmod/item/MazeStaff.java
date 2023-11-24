@@ -29,9 +29,9 @@ import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
 import static net.minecraft.world.item.Items.POTION;
 
 public class MazeStaff extends Item {
-    private static final int MAZE_SIZE = 24; // must be even number, divisible by 4
+    public int mazeWidth = 24; // must be even number, divisible by 4
     private static final int ATTACK_DAMAGE = 3;
-    private static final int MAZE_HEIGHT = 11;
+    public int mazeNoOfFloors = 11;
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
@@ -52,22 +52,24 @@ public class MazeStaff extends Item {
         player.openItemGui(itemstack, hand);
 
         if(world.isClientSide){
-            Minecraft.getInstance().setScreen(new MazeStaffSettingsGuiScreen());
+            Minecraft.getInstance().setScreen(new MazeStaffSettingsGuiScreen(this, world, player));
         }
 
-//        BlockHitResult ray = rayTrace(world, player, ClipContext.Fluid.NONE);
-//        BlockPos lookPos = ray.getBlockPos().relative(ray.getDirection());
-//
-//        for(int floorLevel = 0; floorLevel < MAZE_HEIGHT; floorLevel++){
-//            int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
-//            Block blockType = MAZE_HEIGHT == 1 ? Blocks.GRASS_BLOCK : blockTypeByTowerLevel[blockTypeIdx].getA();
-//            EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
-//
-//            fillFloor(world, floorLevel, lookPos, blockType, floorLevel + 1 == MAZE_HEIGHT);
-//            generateMaze(world, floorLevel, lookPos, monsterEntityType, floorLevel + 1 == MAZE_HEIGHT);
-//        }
-
         return super.use(world, player, hand);
+    }
+
+    public void createMaze(Level world, Player player) {
+        BlockHitResult ray = rayTrace(world, player, ClipContext.Fluid.NONE);
+        BlockPos lookPos = ray.getBlockPos().relative(ray.getDirection());
+
+        for(int floorLevel = 0; floorLevel < mazeNoOfFloors; floorLevel++){
+            int blockTypeIdx = floorLevel >= blockTypeByTowerLevel.length ? blockTypeByTowerLevel.length -1 : floorLevel;
+            Block blockType = mazeNoOfFloors == 1 ? Blocks.GRASS_BLOCK : blockTypeByTowerLevel[blockTypeIdx].getA();
+            EntityType monsterEntityType = blockTypeByTowerLevel[blockTypeIdx].getB();
+
+            fillFloor(world, floorLevel, lookPos, blockType, floorLevel + 1 == mazeNoOfFloors);
+            generateMaze(world, floorLevel, lookPos, monsterEntityType, floorLevel + 1 == mazeNoOfFloors);
+        }
     }
 
     @Override
@@ -75,24 +77,31 @@ public class MazeStaff extends Item {
         enemy.setHealth(enemy.getHealth() - ATTACK_DAMAGE);
         super.hurtEnemy(itemStack, enemy, player);
         return true;
+//        this.onLeftClickEntity()
     }
 
-    @Override
-    public int getUseDuration(ItemStack stack) {
-        // Set the duration for how long the player can use the item (in ticks)
-        return 200; // 10 seconds (20 ticks per second)
-    }
+//    @Override
+//    public void useOn(UseOnContext context){
+//        this.onEntitySwing()
+//        this.onLeftClickEntity()
+//            this.onItemUseFirst()
+//        this.onStopUsing();
+//        this.onInventoryTick();
+//        this.on
+
+//    }
 
     @Override
-    public UseAnim getUseAnimation(ItemStack stack) {
-        return UseAnim.BOW;
+    public boolean onEntitySwing(ItemStack stack, LivingEntity entity){
+        System.out.println("onEntitySwing");
+        return false;
     }
 
     public void fillFloor(Level world, int floorLevel, BlockPos lookPos, Block blockType, boolean isLastFloor) {
         int floorLevelOffset = getFloorLevelOffset(floorLevel);
         // Offset -1 and +2 here so that the perimeter is a solid border.
-        for(int z = -1; z < MAZE_SIZE+2; z++){
-            for(int x = -1; x < MAZE_SIZE+2; x++){
+        for(int z = -1; z < mazeWidth +2; z++){
+            for(int x = -1; x < mazeWidth +2; x++){
                 int xPos = lookPos.getX()+x;
                 int yPos = lookPos.getY()+floorLevelOffset;
                 int zPos = lookPos.getZ()+z;
@@ -121,7 +130,7 @@ public class MazeStaff extends Item {
 
         MazeGeneratorService mazeGeneratorService = new MazeGeneratorService();
 
-        Tuple<MazeNode, MazeNode> mazeStartEndNodes = mazeGeneratorService.generateMazeLinkedList(MAZE_SIZE, lookPos.getX(), lookPos.getZ());
+        Tuple<MazeNode, MazeNode> mazeStartEndNodes = mazeGeneratorService.generateMazeLinkedList(mazeWidth, lookPos.getX(), lookPos.getZ());
         MazeNode rootMazeNode = mazeStartEndNodes.getA();
         MazeNode tailMazeNode = mazeStartEndNodes.getB();
 
@@ -260,7 +269,7 @@ public class MazeStaff extends Item {
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), forwardDirection.xCoordinate, yPos + 1, forwardDirection.zCoordinate);
             setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), forwardDirection.xCoordinate, yPos + 2, forwardDirection.zCoordinate);
 
-            if (loopCount > MAZE_SIZE * 2 && loopCount % 7 == 0 && monsterPlacedCounter < MAZE_SIZE / 4) {
+            if (loopCount > mazeWidth * 2 && loopCount % 7 == 0 && monsterPlacedCounter < mazeWidth / 4) {
                 Entity monster = monsterEntityType.create(world);
                 if (monster != null) {
                     monster.setPos(mazeNode.xCoordinate, yPos + 1, mazeNode.zCoordinate);
