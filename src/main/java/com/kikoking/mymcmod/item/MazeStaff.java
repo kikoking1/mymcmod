@@ -48,10 +48,10 @@ public class MazeStaff extends Item {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level world, Player player, InteractionHand hand) {
-        ItemStack itemstack = player.getItemInHand(hand);
-        player.openItemGui(itemstack, hand);
 
         if(world.isClientSide){
+            ItemStack itemstack = player.getItemInHand(hand);
+            player.openItemGui(itemstack, hand);
             Minecraft.getInstance().setScreen(new MazeStaffSettingsGuiScreen(this, world, player));
         }
 

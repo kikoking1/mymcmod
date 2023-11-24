@@ -38,7 +38,7 @@ public class MazeStaffSettingsGuiScreen extends Screen {
         this.player = player;
 
         this.imageWidth = 256;
-        this.imageHeight = 256;
+        this.imageHeight = 166;
     }
 
     @Override
@@ -103,5 +103,6 @@ public class MazeStaffSettingsGuiScreen extends Screen {
         this.mazeStaff.mazeNoOfFloors = Integer.parseInt(this.mazeNoOfFloorsEditBox.getValue());
 
         this.mazeStaff.createMaze(this.world, this.player);
+        this.minecraft.popGuiLayer();
     }
 }
