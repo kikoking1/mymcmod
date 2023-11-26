@@ -17,25 +17,20 @@ public class MazeStaffSettingsGuiScreen extends Screen {
             Component.translatable("gui." + MyMcMod.MOD_ID + ".maze_staff_screen.title");
     private static final Component MAZE_EDIT_BOX_TEXT =
             Component.translatable("gui." + MyMcMod.MOD_ID + ".maze_staff_screen.edit_box.maze_height");
-    private static final Component CREATE_MAZE =
-            Component.translatable("gui." + MyMcMod.MOD_ID + ".maze_staff_screen.button_label.create_maze");
+    private static final Component APPLY_SETTINGS =
+            Component.translatable("gui." + MyMcMod.MOD_ID + ".maze_staff_screen.button_label.apply_settings");
     private static final ResourceLocation TEXTURE =
             new ResourceLocation(MyMcMod.MOD_ID, "textures/gui/background.png");
     private final int imageWidth, imageHeight;
     private int leftPos, topPos;
-    private Button createMazeButton;
     private EditBox mazeNoOfFloorsEditBox;
     private EditBox mazeWidthEditBox;
     private MazeStaff mazeStaff;
-    private Level world;
-    private Player player;
 
-    protected MazeStaffSettingsGuiScreen(MazeStaff mazeStaff, Level world, Player player) {
+    protected MazeStaffSettingsGuiScreen(MazeStaff mazeStaff) {
         super(TITLE);
 
         this.mazeStaff = mazeStaff;
-        this.world = world;
-        this.player = player;
 
         this.imageWidth = 256;
         this.imageHeight = 166;
@@ -51,10 +46,10 @@ public class MazeStaffSettingsGuiScreen extends Screen {
         Level level = this.minecraft.level;
         if(level == null) return;
 
-        this.createMazeButton = addRenderableWidget(
-                Button.builder(CREATE_MAZE, this::handleButton)
+        addRenderableWidget(
+                Button.builder(APPLY_SETTINGS, this::handleButton)
                     .bounds(this.leftPos + 8, this.topPos + 115, 80, 20)
-                    .tooltip(Tooltip.create(CREATE_MAZE))
+                    .tooltip(Tooltip.create(APPLY_SETTINGS))
                     .build());
 
         this.mazeNoOfFloorsEditBox = addRenderableWidget(new EditBox(
@@ -101,8 +96,6 @@ public class MazeStaffSettingsGuiScreen extends Screen {
     private void handleButton(Button button) {
         this.mazeStaff.mazeWidth = Integer.parseInt(this.mazeWidthEditBox.getValue());
         this.mazeStaff.mazeNoOfFloors = Integer.parseInt(this.mazeNoOfFloorsEditBox.getValue());
-
-        this.mazeStaff.createMaze(this.world, this.player);
         this.minecraft.popGuiLayer();
     }
 }

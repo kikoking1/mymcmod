@@ -13,6 +13,6 @@
 
   "gui.mymcmod.maze_staff_screen.title": "Maze Staff Settings",
   "gui.mymcmod.maze_staff_screen.edit_box.maze_height": "# of Floors",
-  "gui.mymcmod.maze_staff_screen.button_label.create_maze": "Create Maze"
+  "gui.mymcmod.maze_staff_screen.button_label.apply_settings": "Apply"
 
 }

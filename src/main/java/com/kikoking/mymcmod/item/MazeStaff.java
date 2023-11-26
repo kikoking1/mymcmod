@@ -30,8 +30,7 @@ import static net.minecraft.world.item.Items.POTION;
 
 public class MazeStaff extends Item {
     public int mazeWidth = 24; // must be even number, divisible by 4
-    private static final int ATTACK_DAMAGE = 3;
-    public int mazeNoOfFloors = 11;
+    public int mazeNoOfFloors = 3;
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
             new Tuple<>(Blocks.DIAMOND_BLOCK, EntityType.PILLAGER),
@@ -52,7 +51,7 @@ public class MazeStaff extends Item {
         if(world.isClientSide){
             ItemStack itemstack = player.getItemInHand(hand);
             player.openItemGui(itemstack, hand);
-            Minecraft.getInstance().setScreen(new MazeStaffSettingsGuiScreen(this, world, player));
+            Minecraft.getInstance().setScreen(new MazeStaffSettingsGuiScreen(this));
         }
 
         return super.use(world, player, hand);
@@ -73,28 +72,12 @@ public class MazeStaff extends Item {
     }
 
     @Override
-    public boolean hurtEnemy(ItemStack itemStack, LivingEntity enemy, LivingEntity player) {
-        enemy.setHealth(enemy.getHealth() - ATTACK_DAMAGE);
-        super.hurtEnemy(itemStack, enemy, player);
-        return true;
-//        this.onLeftClickEntity()
-    }
-
-//    @Override
-//    public void useOn(UseOnContext context){
-//        this.onEntitySwing()
-//        this.onLeftClickEntity()
-//            this.onItemUseFirst()
-//        this.onStopUsing();
-//        this.onInventoryTick();
-//        this.on
-
-//    }
-
-    @Override
     public boolean onEntitySwing(ItemStack stack, LivingEntity entity){
-        System.out.println("onEntitySwing");
-        return false;
+        Level world = entity.getCommandSenderWorld();
+        Player player = (Player)entity;
+
+        this.createMaze(world, player);
+        return true;
     }
 
     public void fillFloor(Level world, int floorLevel, BlockPos lookPos, Block blockType, boolean isLastFloor) {
