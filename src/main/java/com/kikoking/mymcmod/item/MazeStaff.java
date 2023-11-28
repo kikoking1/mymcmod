@@ -29,8 +29,8 @@ import static com.kikoking.mymcmod.block.ModBlocks.SAPPHIRE_BLOCK;
 import static net.minecraft.world.item.Items.POTION;
 
 public class MazeStaff extends Item {
-    public int mazeWidth = 28; // must be even number, divisible by 4
-    public int mazeNoOfFloors = 24;
+    public static int mazeWidth = 28; // must be even number, divisible by 4
+    public static int mazeNoOfFloors = 24;
     private static final int ATTACK_DAMAGE =  4;
     private static final Tuple<Block, EntityType>[] blockTypeByTowerLevel = new Tuple[]{
             new Tuple<>(SAPPHIRE_BLOCK.get(), EntityType.PIGLIN_BRUTE),
@@ -309,7 +309,7 @@ public class MazeStaff extends Item {
         }
     }
 
-    private BlockPos setMCBlockByCoordinates(Level world, BlockState blockState, int xCoordinate, int yCoordinate, int zCoordinate){
+    public static BlockPos setMCBlockByCoordinates(Level world, BlockState blockState, int xCoordinate, int yCoordinate, int zCoordinate){
         BlockPos blockPos = new BlockPos(xCoordinate, yCoordinate, zCoordinate);
         world.setBlockAndUpdate(new BlockPos(xCoordinate, yCoordinate, zCoordinate), blockState);
 

@@ -1,7 +1,6 @@
 package com.kikoking.mymcmod.block;
 
 import com.kikoking.mymcmod.MyMcMod;
-import com.kikoking.mymcmod.item.MazeCompleteLever;
 import com.kikoking.mymcmod.item.ModItems;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
