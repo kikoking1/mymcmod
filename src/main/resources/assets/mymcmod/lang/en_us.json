@@ -10,6 +10,7 @@
   "item.mymcmod.maze_staff": "Maze Staff",
 
   "block.mymcmod.sapphire_block": "Block of Sapphire",
+  "block.mymcmod.maze_complete_lever": "Maze Complete Lever",
 
   "gui.mymcmod.maze_staff_screen.title": "Maze Staff Settings",
   "gui.mymcmod.maze_staff_screen.edit_box.maze_height": "# of Floors",

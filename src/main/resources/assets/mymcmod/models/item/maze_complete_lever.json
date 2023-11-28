@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "mymcmod:block/maze_complete_lever"
+  }
+}

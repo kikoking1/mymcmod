@@ -1,6 +1,7 @@
 package com.kikoking.mymcmod.block;
 
 import com.kikoking.mymcmod.MyMcMod;
+import com.kikoking.mymcmod.item.MazeCompleteLever;
 import com.kikoking.mymcmod.item.ModItems;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -20,7 +21,16 @@ public class ModBlocks {
             DeferredRegister.create(ForgeRegistries.BLOCKS, MyMcMod.MOD_ID);
 
     public static final RegistryObject<Block> SAPPHIRE_BLOCK = registerBlock("sapphire_block",
-            () -> new Block(BlockBehaviour.Properties.copy(Blocks.SLIME_BLOCK).sound(SoundType.AMETHYST).jumpFactor(2.0F)));
+            () -> {
+        var block = new SapphireBlock(BlockBehaviour.Properties.copy(Blocks.BEDROCK).sound(SoundType.AMETHYST));
+        return block;
+    });
+
+    public static final RegistryObject<Block> MAZE_COMPLETE_LEVER = registerBlock("maze_complete_lever",
+            () -> {
+                var block = new MazeCompleteLever(BlockBehaviour.Properties.copy(Blocks.LEVER).sound(SoundType.AMETHYST));
+                return block;
+            });
 
     private static <T extends Block> RegistryObject<T> registerBlock(String name, Supplier<T> block) {
         RegistryObject<T> toReturn = BLOCKS.register(name, block);
@@ -36,3 +46,4 @@ public class ModBlocks {
         BLOCKS.register(eventBus);
     }
 }
+

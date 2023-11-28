@@ -28,6 +28,7 @@ public class ModCreateModeTabs {
                         pOutput.accept(ModItems.WITHER_SPAWN_EGG.get());
 
                         pOutput.accept(ModBlocks.SAPPHIRE_BLOCK.get());
+                        pOutput.accept(ModBlocks.MAZE_COMPLETE_LEVER.get());
 
                     })
                     .build());
