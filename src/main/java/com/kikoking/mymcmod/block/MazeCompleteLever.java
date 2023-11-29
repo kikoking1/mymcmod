@@ -17,18 +17,12 @@ public class MazeCompleteLever extends LeverBlock {
     }
 
     public InteractionResult use(BlockState blockState, Level world, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult) {
-        var xPos = blockPos.getX()-1;
+        var xPos = blockPos.getX()-10;
         var yPos = blockPos.getY();
-        var zPos = blockPos.getZ()-1;
+        var zPos = blockPos.getZ()-10;
 
-        if(MazeStaff.mazeNoOfFloors % 2 != 0) {
-            xPos = blockPos.getX()-1-MazeStaff.mazeWidth;
-            yPos = blockPos.getY();
-            zPos = blockPos.getZ()-1-MazeStaff.mazeWidth;
-        }
-
-        for (var x = 0; x < MazeStaff.mazeWidth + 3; x++) {
-            for (var z = 0; z < MazeStaff.mazeWidth + 3; z++) {
+        for (var x = 0; x < 20; x++) {
+            for (var z = 0; z < 20; z++) {
                 MazeStaff.setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), x + xPos, yPos, z + zPos);
                 MazeStaff.setMCBlockByCoordinates(world, Blocks.VOID_AIR.defaultBlockState(), x + xPos, yPos + 1, z + zPos);
             }
